@@ -1,5 +1,77 @@
 # tmux Handoff
 
+## Latest Status — 2026-07-08
+
+Current branch workflow: use `main` only unless Dimitris explicitly asks for a
+separate branch.
+
+Git state at handoff:
+
+- Current branch: `main`
+- Synced remote: `origin/main`
+- Latest commit: `e16be63 Use main workflow and endpoint classifier test`
+- Previous Lesson 2 commit: `f452662 Complete lesson 2 classifier`
+- Old `lesson-2-classifier` branch was deleted locally and remotely.
+- Untracked file left untouched: `docs/github.md`
+
+Completed:
+
+- Lesson 1: FastAPI health endpoint, Pydantic response model, pytest test.
+- Lesson 2: `POST /classify`, request/response Pydantic models, rule-based
+  classifier, learning log, Lesson 2 context note.
+- Saved project rule: explain every terminal command before asking Dimitris to
+  run it.
+- Saved project rule: work directly on `main` unless Dimitris asks otherwise.
+
+Important test note:
+
+- `tests/test_classify.py` currently uses FastAPI `TestClient` because Dimitris
+  asked to commit the endpoint-style test.
+- In the Codex sandbox, that `TestClient` request hangs, so the final clean test
+  result was from the direct-function test version before this follow-up commit.
+- Do not treat this as classifier logic failure without rechecking in Dimitris'
+  own terminal.
+
+Next lesson:
+
+Lesson 3 — Simple Tool Function.
+
+Start with a small `src/tools.py` module. Do not connect it to the API yet.
+
+Proposed first code:
+
+```python
+from pydantic import BaseModel
+
+
+class OperationsNoteResult(BaseModel):
+    tool_name: str
+    summary: str
+    next_action: str
+
+
+def create_operations_note(intent: str, source: str) -> OperationsNoteResult:
+    if intent == "temperature_issue":
+        next_action = "Ask maintenance to inspect the freezer temperature"
+    else:
+        next_action = "Review the request and decide the next operational step"
+
+    return OperationsNoteResult(
+        tool_name="create_operations_note",
+        summary=f"{intent} reported from {source}",
+        next_action=next_action,
+    )
+```
+
+Teaching angle for Lesson 3:
+
+- `src/tools.py` is like a small C# service/domain module.
+- `OperationsNoteResult` is like a DTO or record.
+- `create_operations_note(...)` is a deterministic tool-shaped function.
+- Python f-strings are like C# string interpolation.
+
+## Original Handoff
+
 This is the current handoff from the ChatGPT planning conversation.
 
 ## What Dimitris wants now
