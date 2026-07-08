@@ -34,6 +34,10 @@ When asking Dimitris to run terminal commands:
 - Include what the command does.
 - Prefer small command groups that are easy to understand and verify.
 
+Branch workflow:
+
+- Work directly on `main` unless Dimitris explicitly asks for a separate branch.
+
 When writing code:
 
 - Keep changes small.
