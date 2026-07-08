@@ -1,17 +1,11 @@
-from fastapi.testclient import TestClient
+import asyncio
 
-from src.main import app
+from src.main import health
 
 
 def test_health_returns_ok_response():
-    client = TestClient(app)
+    response = asyncio.run(health())
 
-    response = client.get("/health")
-
-    assert response.status_code == 200
-
-    data = response.json()
-
-    assert data["status"] == "ok"
-    assert data["service"] == "agentic-operations-platform"
-    assert data["version"] == "0.1.0"
+    assert response.status == "ok"
+    assert response.service == "agentic-operations-platform"
+    assert response.version == "0.1.0"

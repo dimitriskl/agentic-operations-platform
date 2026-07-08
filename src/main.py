@@ -9,30 +9,35 @@ class HealthResponse(BaseModel):
     service: str
     version: str
 
+
 class OperationsRequest(BaseModel):
     message: str
     source: str
 
+
 class RequestClassificationResponse(BaseModel):
     intent: str
-    risk_level:str
-    requires_approval:bool
+    risk_level: str
+    requires_approval: bool
 
-def classify_request(request: OperationsRequest) -> RequestClassificationResponce:
+
+def classify_request(request: OperationsRequest) -> RequestClassificationResponse:
     normalized_message = request.message.lower()
+
     if "cold" in normalized_message or "hot" in normalized_message:
         intent = "temperature_issue"
     else:
         intent = "general_request"
 
-    return RequestClassifictionResponse(
-            intent = intent
-            risk_level="low"
-            requires_approval=False,
+    return RequestClassificationResponse(
+        intent=intent,
+        risk_level="low",
+        requires_approval=False,
     )
 
+
 @app.get("/health", response_model=HealthResponse)
-def health() -> HealthResponse:
+async def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         service="agentic-operations-platform",
@@ -40,3 +45,6 @@ def health() -> HealthResponse:
     )
 
 
+@app.post("/classify", response_model=RequestClassificationResponse)
+async def classify(request: OperationsRequest) -> RequestClassificationResponse:
+    return classify_request(request)

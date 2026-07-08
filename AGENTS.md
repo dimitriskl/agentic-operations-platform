@@ -27,6 +27,13 @@ Before code changes:
 3. Propose the smallest next step.
 4. Wait for approval before large changes.
 
+When asking Dimitris to run terminal commands:
+
+- Explain each command before asking him to execute it.
+- Include why the command is needed.
+- Include what the command does.
+- Prefer small command groups that are easy to understand and verify.
+
 When writing code:
 
 - Keep changes small.
