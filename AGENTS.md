@@ -12,6 +12,31 @@ Agentic Operations Platform.
 
 Long-term vision: a platform for reliable agentic workflows with tools, state, memory, approvals, audit logs, evaluations, and later multi-agent orchestration.
 
+## Current learning domain
+
+The first concrete learning domain is **AI handling of a 3D printer**, starting with a software simulator.
+
+Do not require a physical printer at the beginning.
+
+The simulator path is documented in:
+
+```text
+docs/context/3d-printer-agent-simulator.md
+docs/learning/3d-printer-agent-learning-track.md
+```
+
+Learning direction:
+
+1. internal fake printer simulator
+2. deterministic printer tools
+3. risk classification
+4. human approval
+5. audit logs
+6. evaluations
+7. AI agent recommendation layer
+8. optional OctoPrint Virtual Printer or Moonraker/Klipper integration
+9. real printer only after safety model is proven
+
 ## Current phase
 
 Phase 0 — Python Bridge for C# Developer.
@@ -46,6 +71,16 @@ When writing code:
 - Add tests for meaningful behavior.
 - Keep the project production-shaped, not notebook-shaped.
 
+## 3D printer safety rules
+
+During learning:
+
+- Do not control real hardware until simulator behavior has tests and evaluations.
+- Do not allow arbitrary G-code from an AI agent.
+- Treat start, cancel, and set-temperature as high-risk actions.
+- High-risk actions must require human approval.
+- Every executed action should be auditable.
+
 ## Phase 0 done means
 
 - FastAPI app
@@ -57,3 +92,14 @@ When writing code:
 - basic audit log
 - clear README
 - learning log
+
+## Next learning direction after current basics
+
+After the current classifier/tool lessons, move toward the printer simulator:
+
+- `PrinterState`
+- `PrinterStatus`
+- `PrinterCommand`
+- simulator service
+- tests for valid/invalid state transitions
+- later FastAPI printer endpoints
