@@ -272,27 +272,228 @@ Concepts:
 - approval-first design
 - no arbitrary G-code
 
-## Stage 9 — External emulator integration
+## Stage 9 — Agent foundations, persona, and tracing
 
-After the internal simulator works, optionally integrate with:
+Build a minimal, observable single-agent layer over the safe recommendation boundary.
 
-```text
+Learn and implement:
+
+- LLM application vs assistant vs agent
+- sense-plan-act-learn as an observable loop
+- model configuration and prompt engineering
+- versioned persona and prompts
+- typed outputs and validation
+- agent traces and tool-call traces
+- OpenAI Agents SDK only after the framework-neutral interfaces are stable
+
+Deliverables:
+
+- traced printer advisor
+- typed recommendation contract
+- invalid-output tests
+- deterministic-policy vs model-recommendation comparison
+
+## Stage 10 — Reasoning, planning, and bounded agentic loops
+
+Add iterative diagnosis only when one-pass recommendations are reliable.
+
+Patterns to study:
+
+- ReAct
+- planning and plan revision
+- Tree-of-Thought
+- Reflexion
+- sequential thinking
+- inner, task, and orchestration loops
+
+Safety and reliability controls:
+
+- termination gates
+- iteration limits
+- timeouts
+- token and cost budgets
+- repeated-action and stagnation detection
+- concise observable decision records instead of hidden chain-of-thought
+
+Deliverables:
+
+- bounded printer-diagnosis loop
+- explicit plan/action records
+- loop-budget tests
+- evaluation comparing one-pass and iterative diagnosis
+
+## Stage 11 — Knowledge, memory, and RAG
+
+Ground recommendations in authoritative printer documentation.
+
+Learn and implement:
+
+- ingestion, chunking, embeddings, and retrieval
+- semantic, keyword, and hybrid search
+- evidence citations
+- session, semantic, episodic, and procedural memory
+- memory relevance, retention, compression, and forgetting
+- separation between authoritative knowledge and remembered experience
+
+Deliverables:
+
+- RAG over manuals and safety procedures
+- session memory for the current print job
+- episodic memory for past incidents
+- unsupported-recommendation and irrelevant-retrieval tests
+- retention and deletion policy
+
+## Stage 12 — MCP and external emulator integration
+
+Expose approved printer capabilities through Model Context Protocol and connect to an external emulator.
+
+Learn and implement:
+
+- MCP clients and servers
+- tools, resources, and prompts
+- local and remote transport trade-offs
+- tool discovery and invocation
+- authentication, authorization, and deployment boundaries
+- MCP inspection and contract testing
+
+External targets:
+
+\`\`\`text
 OctoPrint Virtual Printer
 Moonraker / Klipper sandbox
-```
+\`\`\`
 
-The platform should abstract printer control behind a common interface, so the agent does not care whether it is talking to:
+The platform must keep printer control behind a common interface:
 
-```text
+\`\`\`text
 internal simulator
 OctoPrint
 Moonraker
 real printer
-```
+\`\`\`
 
-## Stage 10 — Real printer integration
+Deliverables:
 
-Only after the previous stages pass.
+- safe printer MCP server
+- MCP client adapter
+- capability allowlist
+- discovery/invocation contract tests
+- unavailable or malformed service handling
+
+## Stage 13 — Multi-agent systems, A2A, and handoff guardrails
+
+Add multiple agents only after a single agent is reliable and evaluated.
+
+Study and compare:
+
+- sequential agent flows
+- coordinator/worker orchestration
+- collaborative teams
+- typed handoffs
+- message passing and shared state
+- shared memory
+- A2A capability discovery
+- input/output guardrails
+- deterministic workflow alternatives
+
+Printer incident roles may include:
+
+\`\`\`text
+monitor
+diagnostician
+safety reviewer
+\`\`\`
+
+The safety reviewer does not bypass the centralized approval and execution boundary.
+
+Deliverables:
+
+- one small multi-agent incident flow
+- typed handoff contracts
+- handoff and guardrail tests
+- latency, cost, and failure-amplification comparison against a single-agent flow
+
+## Stage 14 — Advanced evaluation and feedback
+
+Extend the Stage 7 baseline into a production-shaped regression system.
+
+Learn and implement:
+
+- test-driven agent development
+- rubrics
+- grounding, critic, and evaluator agents
+- human annotations and disputed-outcome review
+- session and trace evaluation
+- prompt, tool, model, and policy regression suites
+
+Required metrics:
+
+- task success
+- groundedness
+- tool choice
+- state-transition correctness
+- approval correctness
+- safety-policy compliance
+- latency and cost
+
+Deliverables:
+
+- versioned evaluation dataset
+- deterministic and model-based evaluators
+- human-review workflow
+- release gate that blocks safety regressions
+
+## Stage 15 — Deployment, observability, security, and cost
+
+Prepare the platform for reliable operation before real hardware.
+
+Learn and implement:
+
+- agent APIs
+- Docker and Docker Compose
+- state, idempotency, resumability, and recovery
+- release engineering for prompts, tools, policies, and models
+- traces, metrics, logs, and correlation identifiers
+- timeouts, retries, fallbacks, circuit breakers, and budgets
+- model routing and cost control
+- identity, secrets, sandboxing, and egress control
+- prompt-injection and data-exfiltration defenses
+- governance and policy enforcement
+
+Deliverables:
+
+- containerized platform and emulator
+- health and readiness checks
+- end-to-end correlation
+- failure-injection tests
+- threat model
+- cost and latency report
+- rollback procedure
+
+## Stage 16 — Cognitive and metacognitive safeguards
+
+Add adaptive behavior without granting uncontrolled autonomy.
+
+Learn and implement:
+
+- perception, planning, execution, evaluation, attention, and memory modules
+- confidence-gated execution
+- knowledge-boundary awareness
+- stagnation detection
+- safe strategy switching
+- cognitive-efficiency metrics
+
+Deliverables:
+
+- known/unknown classification
+- human escalation below a confidence threshold
+- safe strategy-pivot rule
+- tests proving that uncertainty cannot expand permissions
+- metrics for iterations, interventions, latency, cost, and success
+
+## Stage 17 — Real printer integration
+
+Only after the previous stages and production-safety gates pass.
 
 Safety rules for real printer:
 
@@ -300,10 +501,32 @@ Safety rules for real printer:
 - no public internet exposure
 - local network or VPN only
 - authentication required
+- least-privilege tool access
 - high-risk actions require approval
-- audit log always enabled
+- audit log and observability always enabled
+- tested timeout, fallback, and emergency-stop behavior
 - physical smoke detector nearby
 - no fully unattended experimentation at the beginning
+
+## Stage 18 — Capstone and transfer
+
+Complete the track with:
+
+- a production-shaped printer-agent capstone
+- an operational runbook
+- a final reliability, safety, security, cost, and maintainability report
+- an architecture decision record comparing deterministic workflows, single agents, and multi-agent systems
+- a second operational domain proving that the architecture transfers
+
+## Extended knowledge coverage
+
+The durable agent-engineering topics, deliverables, and completion criteria are maintained in:
+
+\`\`\`text
+docs/learning/agent-engineering-knowledge-coverage.md
+\`\`\`
+
+A knowledge area is not complete after reading about it. It is complete only after implementation, automated tests, evaluation scenarios, observable evidence, and a short trade-off note.
 
 ## Relationship to printer buying decision
 
