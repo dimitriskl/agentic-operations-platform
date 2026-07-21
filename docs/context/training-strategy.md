@@ -40,18 +40,36 @@ docs/context/3d-printer-agent-simulator.md
 ## Learning order
 
 1. Python Bridge
-2. Pydantic request/response models
-3. Fake 3D printer simulator
-4. Tools over the simulator
-5. Reliable single agent
-6. State and sessions
-7. Evaluations
-8. Workflow engine
-9. Memory
-10. RAG
-11. Human approval
-12. Multi-agent orchestration
-13. Agentic platform prototype
+2. Typed request/response models and FastAPI
+3. Deterministic 3D printer simulator
+4. Tool registry and permission boundaries
+5. Risk classification
+6. Human approval and audit log
+7. Baseline evaluations
+8. Minimal single agent with persona, typed output, and tracing
+9. Reasoning, planning, and bounded agentic loops
+10. Knowledge, memory, and RAG
+11. MCP and external printer adapters
+12. Multi-agent systems, typed handoffs, A2A, and guardrails
+13. Advanced evaluation and feedback
+14. Deployment, observability, security, and cost control
+15. Cognitive and metacognitive safeguards
+16. Real printer integration after production-safety gates
+17. Capstone and transfer to a second operational domain
+
+The detailed future knowledge map is:
+
+\`\`\`text
+docs/learning/agent-engineering-knowledge-coverage.md
+\`\`\`
+
+## Reference-material rule
+
+Books, courses, and official documentation are reference libraries, not the main path.
+
+Read a topic just before its project milestone. Every learning session should still produce a small repository result.
+
+Framework-neutral interfaces and safety policies come first. SDK-specific implementations, including OpenAI Agents SDK examples, come later and must remain replaceable.
 
 ## Udacity usage
 
