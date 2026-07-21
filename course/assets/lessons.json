@@ -63,9 +63,25 @@
         "runCommand": "pytest -q",
         "starterCode": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass ArchitectureBoundary:\n    name: str\n    owner: str\n    trust_level: str\n\n\ndef production_boundaries() -> list[ArchitectureBoundary]:\n    # TODO: return model, policy, execution, and operator boundaries\n    return []\n",
         "checks": [
-          {"label": "Represent the model boundary", "includes": ["model"]},
-          {"label": "Represent policy and execution", "includes": ["policy", "execution"]},
-          {"label": "Represent the human operator", "includes": ["operator"]}
+          {
+            "label": "Represent the model boundary",
+            "includes": [
+              "model"
+            ]
+          },
+          {
+            "label": "Represent policy and execution",
+            "includes": [
+              "policy",
+              "execution"
+            ]
+          },
+          {
+            "label": "Represent the human operator",
+            "includes": [
+              "operator"
+            ]
+          }
         ],
         "hints": [
           "The model should not own credentials or execute printer commands directly.",
@@ -149,9 +165,25 @@
         "runCommand": "pytest tests/test_printer_simulator.py -q",
         "starterCode": "from enum import Enum\n\nclass PrinterState(str, Enum):\n    IDLE = \"idle\"\n    PRINTING = \"printing\"\n    PAUSED = \"paused\"\n    CANCELLED = \"cancelled\"\n\n\nclass InvalidTransition(ValueError):\n    pass\n\n\ndef transition(current: PrinterState, target: PrinterState) -> PrinterState:\n    # TODO: enforce allowed transitions\n    return target\n",
         "checks": [
-          {"label": "Use an explicit allowlist", "includes": ["allowed"]},
-          {"label": "Reject invalid transitions", "includes": ["raise", "invalidtransition"]},
-          {"label": "Return a typed state", "includes": ["printerstate"]}
+          {
+            "label": "Use an explicit allowlist",
+            "includes": [
+              "allowed"
+            ]
+          },
+          {
+            "label": "Reject invalid transitions",
+            "includes": [
+              "raise",
+              "invalidtransition"
+            ]
+          },
+          {
+            "label": "Return a typed state",
+            "includes": [
+              "printerstate"
+            ]
+          }
         ],
         "hints": [
           "Map each source state to a set of allowed target states.",
@@ -213,7 +245,8 @@
           "heading": "Structured output as a safety seam",
           "paragraphs": [
             "A validated schema narrows the space between model language and application action. Validation should reject unknown actions, missing evidence, invalid risk levels, and oversized fields. Repair retries are useful for formatting errors, but repeated semantic failures should stop and escalate rather than loop indefinitely.",
-            "A typed recommendation is still untrusted input. Policy must independently classify risk and decide whether approval is required."
+            "A typed recommendation is still untrusted input. Policy must independently classify risk and decide whether approval is required.",
+            "The OpenAI Agents SDK is one useful implementation of these primitives: Agent and Runner manage turns, function tools generate schemas, and output types, guardrails, handoffs, sessions, approvals, and tracing reduce boilerplate. Map each SDK feature back to an explicit harness contract so a framework upgrade cannot silently redefine policy or state ownership."
           ],
           "takeaway": "Schema validation makes model output parseable; policy makes it permissible."
         }
@@ -235,9 +268,25 @@
         "runCommand": "pytest tests/test_recommendation.py -q",
         "starterCode": "from typing import Literal\nfrom pydantic import BaseModel, Field\n\nclass Recommendation(BaseModel):\n    summary: str\n    action: str\n    evidence: list[str]\n    confidence: float\n    requires_approval: bool\n",
         "checks": [
-          {"label": "Constrain allowed actions", "includes": ["literal"]},
-          {"label": "Bound confidence", "includes": ["ge=0", "le=1"]},
-          {"label": "Require evidence", "includes": ["min_length=1"]}
+          {
+            "label": "Constrain allowed actions",
+            "includes": [
+              "literal"
+            ]
+          },
+          {
+            "label": "Bound confidence",
+            "includes": [
+              "ge=0",
+              "le=1"
+            ]
+          },
+          {
+            "label": "Require evidence",
+            "includes": [
+              "min_length=1"
+            ]
+          }
         ],
         "hints": [
           "Use Literal for a small closed action set.",
@@ -316,14 +365,33 @@
           "Define Protocol interfaces for each harness boundary.",
           "Pass typed actions between components.",
           "Enforce a step budget.",
-          "Return an explicit escalated result when the budget expires."
+          "Return an explicit escalated result when the budget expires.",
+          "Implement the same typed turn once with the framework-neutral harness and once with the current OpenAI Agents SDK."
         ],
         "runCommand": "pytest tests/test_agent_harness.py -q",
         "starterCode": "from typing import Protocol\n\nclass Model(Protocol):\n    def propose(self, context: str) -> dict: ...\n\nclass Policy(Protocol):\n    def evaluate(self, action): ...\n\n\ndef run_harness(model: Model, policy: Policy, max_steps: int):\n    # TODO: propose, validate, evaluate, execute, observe, verify\n    raise NotImplementedError\n",
         "checks": [
-          {"label": "Use replaceable protocols", "includes": ["protocol", "model", "policy"]},
-          {"label": "Enforce a budget", "includes": ["max_steps", "range"]},
-          {"label": "Include verification", "includes": ["verif"]}
+          {
+            "label": "Use replaceable protocols",
+            "includes": [
+              "protocol",
+              "model",
+              "policy"
+            ]
+          },
+          {
+            "label": "Enforce a budget",
+            "includes": [
+              "max_steps",
+              "range"
+            ]
+          },
+          {
+            "label": "Include verification",
+            "includes": [
+              "verif"
+            ]
+          }
         ],
         "hints": [
           "Keep the model interface unaware of printer credentials.",
@@ -346,7 +414,8 @@
         "Framework-neutral harness interfaces",
         "End-to-end turn sequence diagram",
         "Trace from proposal through verified result",
-        "Interruption and resume test"
+        "Interruption and resume test",
+        "SDK equivalence report covering state, tool dispatch, tracing, verification, and framework coupling"
       ]
     },
     {
@@ -377,7 +446,8 @@
           "heading": "Approval is a state machine",
           "paragraphs": [
             "Approval includes a proposed command, frozen arguments, risk classification, requester, approver, expiry, and final decision. Approval must bind to the exact action that will execute; changing parameters after approval invalidates the decision. The gateway verifies approval immediately before the side effect.",
-            "Approval is not containment. Repeated prompts create fatigue, and a user may approve a misleading request. Use least privilege and sandboxing even when a human is present."
+            "Approval is not containment. Repeated prompts create fatigue, and a user may approve a misleading request. Use least privilege and sandboxing even when a human is present.",
+            "SDK input and output guardrails can reject unsuitable content, but they are not the authorization boundary. Schema validation, deterministic business policy, human approval, and execution-time enforcement solve different problems. The lab must prove that bypassing a model-facing guardrail cannot bypass printer permissions."
           ],
           "takeaway": "Bind approval evidence to an immutable command envelope."
         },
@@ -402,15 +472,38 @@
           "Define a tool registry with risk metadata.",
           "Reject missing and forbidden tools.",
           "Require approval for high-risk commands.",
-          "Pass an idempotency key to the adapter."
+          "Pass an idempotency key to the adapter.",
+          "Test the same denied action against an SDK guardrail and the deterministic execution policy."
         ],
         "runCommand": "pytest tests/test_tool_gateway.py -q",
         "starterCode": "class ToolGateway:\n    def __init__(self, registry, policy, approvals):\n        self.registry = registry\n        self.policy = policy\n        self.approvals = approvals\n\n    def execute(self, command, approval=None):\n        # TODO: lookup, classify, verify, invoke\n        raise NotImplementedError\n",
         "checks": [
-          {"label": "Use the registry", "includes": ["registry"]},
-          {"label": "Evaluate policy", "includes": ["policy", "evaluate"]},
-          {"label": "Verify approval", "includes": ["approval", "verify"]},
-          {"label": "Use idempotency", "includes": ["idempot"]}
+          {
+            "label": "Use the registry",
+            "includes": [
+              "registry"
+            ]
+          },
+          {
+            "label": "Evaluate policy",
+            "includes": [
+              "policy",
+              "evaluate"
+            ]
+          },
+          {
+            "label": "Verify approval",
+            "includes": [
+              "approval",
+              "verify"
+            ]
+          },
+          {
+            "label": "Use idempotency",
+            "includes": [
+              "idempot"
+            ]
+          }
         ],
         "hints": [
           "Fingerprint the tool name and normalized arguments.",
@@ -456,7 +549,8 @@
           "heading": "Observable reasoning patterns",
           "paragraphs": [
             "ReAct alternates between an action proposal and an observation. Planning creates an explicit task structure before action. Reflection uses results to revise a strategy. Search patterns explore alternatives but multiply cost and failure paths. These patterns are useful engineering structures; they do not require storing private chain-of-thought. Record concise plans, actions, observations, and decision summaries instead.",
-            "Select the simplest pattern that meets the task. A one-pass structured recommendation is easier to evaluate than an open loop and should remain the baseline."
+            "Select the simplest pattern that meets the task. A one-pass structured recommendation is easier to evaluate than an open loop and should remain the baseline.",
+            "Tree-of-Thought explores several candidate paths before selection, while Reflexion turns observed failure into bounded feedback for a later attempt. Both can improve difficult tasks, but branch count and reflection attempts multiply latency, cost, and failure exposure. Compare them as observable control structures without requesting or persisting hidden chain-of-thought."
           ],
           "takeaway": "Add iteration only after one-pass behavior is reliable and measured."
         },
@@ -489,15 +583,37 @@
           "Define a LoopBudget.",
           "Track action fingerprints.",
           "Verify a goal with a deterministic function.",
-          "Return explicit terminal result types."
+          "Return explicit terminal result types.",
+          "Compare one-pass, ReAct, bounded Tree-of-Thought, and bounded Reflexion on the same evaluation cases."
         ],
         "runCommand": "pytest tests/test_diagnosis_loop.py -q",
         "starterCode": "from dataclasses import dataclass\n\n@dataclass\nclass LoopBudget:\n    max_steps: int\n    max_cost_usd: float\n\n\ndef diagnose(state, budget: LoopBudget):\n    # TODO: bounded loop, repetition detection, verification, escalation\n    raise NotImplementedError\n",
         "checks": [
-          {"label": "Enforce max steps", "includes": ["max_steps", "range"]},
-          {"label": "Detect repetition", "includes": ["fingerprint"]},
-          {"label": "Verify completion", "includes": ["verif"]},
-          {"label": "Escalate safely", "includes": ["escalat"]}
+          {
+            "label": "Enforce max steps",
+            "includes": [
+              "max_steps",
+              "range"
+            ]
+          },
+          {
+            "label": "Detect repetition",
+            "includes": [
+              "fingerprint"
+            ]
+          },
+          {
+            "label": "Verify completion",
+            "includes": [
+              "verif"
+            ]
+          },
+          {
+            "label": "Escalate safely",
+            "includes": [
+              "escalat"
+            ]
+          }
         ],
         "hints": [
           "Use explicit result classes rather than a single boolean.",
@@ -520,7 +636,8 @@
         "Loop budget and terminal result types",
         "Repeated-action and no-progress tests",
         "One-pass versus iterative evaluation",
-        "Trace showing plan revision and safe escalation"
+        "Trace showing plan revision and safe escalation",
+        "Reasoning-pattern comparison covering success, variance, latency, cost, repetition, and unsafe proposals"
       ]
     },
     {
@@ -581,11 +698,36 @@
         "runCommand": "pytest tests/test_context_builder.py -q",
         "starterCode": "class ContextBuilder:\n    def build(self, sources, token_budget: int):\n        # TODO: select, compress, persist, isolate, and return a manifest\n        raise NotImplementedError\n",
         "checks": [
-          {"label": "Select relevant inputs", "includes": ["select"]},
-          {"label": "Compress oversized inputs", "includes": ["compress"]},
-          {"label": "Persist durable artifacts", "includes": ["persist"]},
-          {"label": "Isolate subtask context", "includes": ["isolate"]},
-          {"label": "Return a manifest", "includes": ["manifest"]}
+          {
+            "label": "Select relevant inputs",
+            "includes": [
+              "select"
+            ]
+          },
+          {
+            "label": "Compress oversized inputs",
+            "includes": [
+              "compress"
+            ]
+          },
+          {
+            "label": "Persist durable artifacts",
+            "includes": [
+              "persist"
+            ]
+          },
+          {
+            "label": "Isolate subtask context",
+            "includes": [
+              "isolate"
+            ]
+          },
+          {
+            "label": "Return a manifest",
+            "includes": [
+              "manifest"
+            ]
+          }
         ],
         "hints": [
           "Rank current device state above remembered incidents.",
@@ -595,7 +737,12 @@
       },
       "quiz": {
         "question": "Which operation keeps detailed work outside the prompt while preserving it for later use?",
-        "options": ["Select", "Compress", "Write or persist", "Shuffle"],
+        "options": [
+          "Select",
+          "Compress",
+          "Write or persist",
+          "Shuffle"
+        ],
         "answer": 2,
         "explanation": "Writing durable artifacts preserves work without consuming every later context window."
       },
@@ -634,7 +781,8 @@
           "heading": "Hybrid retrieval and reranking",
           "paragraphs": [
             "Semantic retrieval captures meaning; keyword retrieval preserves exact identifiers and error codes. Metadata filters enforce product model, version, language, tenancy, and access. Hybrid retrieval collects candidates, and reranking orders them for the current question.",
-            "The query may need decomposition. A printer failure question can separately retrieve the error-code definition, current model procedure, and safety constraints, then combine evidence."
+            "The query may need decomposition. A printer failure question can separately retrieve the error-code definition, current model procedure, and safety constraints, then combine evidence.",
+            "A vector database such as Chroma is an adapter, not the knowledge architecture. Put it behind a retrieval port, preserve source metadata and authorization filters, and prove that a second implementation can satisfy the same contract. This keeps storage-specific APIs out of grounding and policy logic."
           ],
           "takeaway": "Use multiple retrieval signals and keep authorization before relevance."
         },
@@ -659,15 +807,37 @@
           "Filter by printer model and source access.",
           "Combine semantic and keyword candidates.",
           "Rerank by relevance and authority.",
-          "Abstain below an evidence threshold."
+          "Abstain below an evidence threshold.",
+          "Implement Chroma as one replaceable vector-retrieval adapter and verify it with contract tests."
         ],
         "runCommand": "pytest tests/test_printer_rag.py -q",
         "starterCode": "def answer_question(question, printer_model, retriever):\n    # TODO: filter, retrieve, rerank, cite, or abstain\n    raise NotImplementedError\n",
         "checks": [
-          {"label": "Apply metadata filters", "includes": ["filter"]},
-          {"label": "Use hybrid retrieval", "includes": ["semantic", "keyword"]},
-          {"label": "Rerank candidates", "includes": ["rerank"]},
-          {"label": "Abstain when evidence is insufficient", "includes": ["abstain"]}
+          {
+            "label": "Apply metadata filters",
+            "includes": [
+              "filter"
+            ]
+          },
+          {
+            "label": "Use hybrid retrieval",
+            "includes": [
+              "semantic",
+              "keyword"
+            ]
+          },
+          {
+            "label": "Rerank candidates",
+            "includes": [
+              "rerank"
+            ]
+          },
+          {
+            "label": "Abstain when evidence is insufficient",
+            "includes": [
+              "abstain"
+            ]
+          }
         ],
         "hints": [
           "Run authorization and tenancy filters before sending text to the model.",
@@ -751,10 +921,30 @@
         "runCommand": "pytest tests/test_memory_policy.py -q",
         "starterCode": "from dataclasses import dataclass\nfrom datetime import datetime\n\n@dataclass\nclass MemoryRecord:\n    kind: str\n    content: str\n    source: str\n    confidence: float\n    observed_at: datetime\n\n\ndef resolve_memory(records, current_state, policy):\n    # TODO: authority, access, conflict, and retention rules\n    raise NotImplementedError\n",
         "checks": [
-          {"label": "Use provenance", "includes": ["source"]},
-          {"label": "Prioritize policy", "includes": ["policy"]},
-          {"label": "Use current state", "includes": ["current_state"]},
-          {"label": "Apply retention or deletion", "includes": ["retention"]}
+          {
+            "label": "Use provenance",
+            "includes": [
+              "source"
+            ]
+          },
+          {
+            "label": "Prioritize policy",
+            "includes": [
+              "policy"
+            ]
+          },
+          {
+            "label": "Use current state",
+            "includes": [
+              "current_state"
+            ]
+          },
+          {
+            "label": "Apply retention or deletion",
+            "includes": [
+              "retention"
+            ]
+          }
         ],
         "hints": [
           "Filter unauthorized and expired records before ranking.",
@@ -838,10 +1028,30 @@
         "runCommand": "pytest tests/test_printer_incident_skill.py -q",
         "starterCode": "class SkillRegistry:\n    def discover(self, request):\n        # TODO: return compact matching metadata\n        raise NotImplementedError\n\n    def load(self, skill_name, version):\n        # TODO: load the approved skill bundle\n        raise NotImplementedError\n",
         "checks": [
-          {"label": "Implement discovery", "includes": ["discover"]},
-          {"label": "Use an explicit trigger", "includes": ["trigger"]},
-          {"label": "Load by version", "includes": ["version"]},
-          {"label": "Declare boundaries", "includes": ["forbidden"]}
+          {
+            "label": "Implement discovery",
+            "includes": [
+              "discover"
+            ]
+          },
+          {
+            "label": "Use an explicit trigger",
+            "includes": [
+              "trigger"
+            ]
+          },
+          {
+            "label": "Load by version",
+            "includes": [
+              "version"
+            ]
+          },
+          {
+            "label": "Declare boundaries",
+            "includes": [
+              "forbidden"
+            ]
+          }
         ],
         "hints": [
           "Discovery results should be much smaller than the loaded skill.",
@@ -887,7 +1097,8 @@
           "heading": "MCP exposes capabilities, not trust",
           "paragraphs": [
             "Model Context Protocol standardizes how clients discover and use tools, resources, and prompts. Discovery improves interoperability, but it does not make a remote server trustworthy. The client still needs authentication, authorization, capability allowlists, schema validation, timeouts, and output handling.",
-            "Local and remote transports have different trust and deployment boundaries. A local process can still be compromised, while a remote server adds network identity, tenancy, and data-residency concerns."
+            "Local and remote transports have different trust and deployment boundaries. A local process can still be compromised, while a remote server adds network identity, tenancy, and data-residency concerns.",
+            "Teach the current standard transports explicitly: stdio for a client-managed local subprocess and Streamable HTTP for a remote service. Older HTTP plus SSE examples are migration material, not the default architecture. The remote lab must validate Origin, bind locally during development, authenticate clients, and handle session loss."
           ],
           "takeaway": "Protocol compatibility never replaces security policy."
         },
@@ -920,15 +1131,36 @@
           "Define an explicit capability allowlist.",
           "Authorize discovery and invocation.",
           "Validate tool arguments and results.",
-          "Handle unavailable and malformed servers."
+          "Handle unavailable and malformed servers.",
+          "Expose the same read-only capability over stdio and Streamable HTTP, then document how a legacy HTTP-plus-SSE client would migrate."
         ],
         "runCommand": "pytest tests/test_printer_mcp.py -q",
         "starterCode": "class PrinterMcpAdapter:\n    def discover(self, identity):\n        # TODO: authorized allowlisted capabilities\n        raise NotImplementedError\n\n    def invoke(self, identity, name, arguments):\n        # TODO: validate, authorize, call, normalize\n        raise NotImplementedError\n",
         "checks": [
-          {"label": "Use an allowlist", "includes": ["allowlist"]},
-          {"label": "Authorize the identity", "includes": ["authoriz"]},
-          {"label": "Validate data", "includes": ["validate"]},
-          {"label": "Handle unavailable services", "includes": ["unavailable"]}
+          {
+            "label": "Use an allowlist",
+            "includes": [
+              "allowlist"
+            ]
+          },
+          {
+            "label": "Authorize the identity",
+            "includes": [
+              "authoriz"
+            ]
+          },
+          {
+            "label": "Validate data",
+            "includes": [
+              "validate"
+            ]
+          },
+          {
+            "label": "Handle unavailable services",
+            "includes": [
+              "unavailable"
+            ]
+          }
         ],
         "hints": [
           "Filter discovery results before presenting them to the model.",
@@ -951,7 +1183,8 @@
         "MCP discovery and invocation contract tests",
         "Authentication and capability matrix",
         "Malformed and unavailable dependency scenarios",
-        "Multimodal confidence and fallback evaluation"
+        "Multimodal confidence and fallback evaluation",
+        "Transport comparison with Origin, authentication, session-loss, and legacy-migration tests"
       ]
     },
     {
@@ -1012,10 +1245,31 @@
         "runCommand": "pytest tests/test_multi_agent_incident.py -q",
         "starterCode": "class IncidentCoordinator:\n    def run(self, incident):\n        # TODO: monitor artifact -> diagnosis task -> safety review -> central proposal\n        raise NotImplementedError\n",
         "checks": [
-          {"label": "Use typed handoffs", "includes": ["task", "artifact"]},
-          {"label": "Propagate correlation", "includes": ["correlation"]},
-          {"label": "Enforce budgets", "includes": ["budget"]},
-          {"label": "Keep execution centralized", "includes": ["gateway"]}
+          {
+            "label": "Use typed handoffs",
+            "includes": [
+              "task",
+              "artifact"
+            ]
+          },
+          {
+            "label": "Propagate correlation",
+            "includes": [
+              "correlation"
+            ]
+          },
+          {
+            "label": "Enforce budgets",
+            "includes": [
+              "budget"
+            ]
+          },
+          {
+            "label": "Keep execution centralized",
+            "includes": [
+              "gateway"
+            ]
+          }
         ],
         "hints": [
           "The safety reviewer returns a decision artifact, not a printer command.",
@@ -1077,7 +1331,8 @@
           "heading": "Graders, drift, and reproducibility",
           "paragraphs": [
             "Use deterministic graders for schemas, states, tool calls, citations, and policy whenever possible. Model judges can assess nuanced quality but must be calibrated against human labels and monitored for disagreement and bias.",
-            "Fingerprint the dataset, harness configuration, prompt, model, tools, skills, policies, and results. Run fault injection and long-horizon checkpoints. Compare releases to detect behavior drift before production."
+            "Fingerprint the dataset, harness configuration, prompt, model, tools, skills, policies, and results. Run fault injection and long-horizon checkpoints. Compare releases to detect behavior drift before production.",
+            "Tracing backends do not replace evaluation datasets. Use provider-native traces and OpenTelemetry-compatible instrumentation to correlate generations, retrieval, tools, guardrails, handoffs, approvals, and verification. An external backend such as Phoenix can be compared as an observability adapter, with sensitive model, tool, and audio data redacted."
           ],
           "takeaway": "An evaluation result without reproducible configuration is an anecdote."
         }
@@ -1094,16 +1349,43 @@
           "Define versioned scenario items and deterministic graders.",
           "Run each probabilistic scenario multiple times.",
           "Track abstention separately from confident error.",
-          "Fingerprint configuration and apply a safety release gate."
+          "Fingerprint configuration and apply a safety release gate.",
+          "Correlate evaluation failures with provider-native and OpenTelemetry-compatible traces while redacting sensitive data."
         ],
         "runCommand": "pytest tests/test_eval_harness.py -q",
         "starterCode": "def run_evaluation(dataset, system, repeats: int):\n    # TODO: fingerprint, repeat, grade, aggregate, release gate\n    raise NotImplementedError\n",
         "checks": [
-          {"label": "Repeat trials", "includes": ["repeats", "range"]},
-          {"label": "Fingerprint the run", "includes": ["fingerprint"]},
-          {"label": "Grade safety", "includes": ["safety"]},
-          {"label": "Distinguish abstention", "includes": ["abstain"]},
-          {"label": "Apply a release gate", "includes": ["release"]}
+          {
+            "label": "Repeat trials",
+            "includes": [
+              "repeats",
+              "range"
+            ]
+          },
+          {
+            "label": "Fingerprint the run",
+            "includes": [
+              "fingerprint"
+            ]
+          },
+          {
+            "label": "Grade safety",
+            "includes": [
+              "safety"
+            ]
+          },
+          {
+            "label": "Distinguish abstention",
+            "includes": [
+              "abstain"
+            ]
+          },
+          {
+            "label": "Apply a release gate",
+            "includes": [
+              "release"
+            ]
+          }
         ],
         "hints": [
           "Keep raw per-trial results before aggregation.",
@@ -1113,7 +1395,12 @@
       },
       "quiz": {
         "question": "Which metric asks whether every one of several required runs succeeds?",
-        "options": ["Pass-at-k", "Pass-to-the-k", "Token count", "Semantic similarity"],
+        "options": [
+          "Pass-at-k",
+          "Pass-to-the-k",
+          "Token count",
+          "Semantic similarity"
+        ],
         "answer": 1,
         "explanation": "Pass-to-the-k captures consistent success across all required runs."
       },
@@ -1182,11 +1469,36 @@
         "runCommand": "pytest tests/test_improvement_pipeline.py -q",
         "starterCode": "class ImprovementPipeline:\n    def propose(self, weakness_report):\n        # TODO: constrained candidate only\n        raise NotImplementedError\n\n    def release(self, candidate, evaluation, approval):\n        # TODO: independent gate, canary, rollback\n        raise NotImplementedError\n",
         "checks": [
-          {"label": "Mine weaknesses", "includes": ["weakness"]},
-          {"label": "Restrict editable surfaces", "includes": ["editable"]},
-          {"label": "Run independent evaluation", "includes": ["evaluation"]},
-          {"label": "Require approval", "includes": ["approval"]},
-          {"label": "Support rollback", "includes": ["rollback"]}
+          {
+            "label": "Mine weaknesses",
+            "includes": [
+              "weakness"
+            ]
+          },
+          {
+            "label": "Restrict editable surfaces",
+            "includes": [
+              "editable"
+            ]
+          },
+          {
+            "label": "Run independent evaluation",
+            "includes": [
+              "evaluation"
+            ]
+          },
+          {
+            "label": "Require approval",
+            "includes": [
+              "approval"
+            ]
+          },
+          {
+            "label": "Support rollback",
+            "includes": [
+              "rollback"
+            ]
+          }
         ],
         "hints": [
           "Reject candidates that touch immutable surfaces.",
@@ -1270,10 +1582,33 @@
         "runCommand": "pytest tests/security/test_sandbox_policy.py -q",
         "starterCode": "def lesson_sandbox_profile():\n    # TODO: filesystem, network, credentials, quotas, cleanup\n    raise NotImplementedError\n",
         "checks": [
-          {"label": "Restrict filesystem", "includes": ["read_only", "writable"]},
-          {"label": "Deny network by default", "includes": ["network", "deny"]},
-          {"label": "Remove ambient credentials", "includes": ["credentials"]},
-          {"label": "Set quotas and cleanup", "includes": ["memory", "destroy"]}
+          {
+            "label": "Restrict filesystem",
+            "includes": [
+              "read_only",
+              "writable"
+            ]
+          },
+          {
+            "label": "Deny network by default",
+            "includes": [
+              "network",
+              "deny"
+            ]
+          },
+          {
+            "label": "Remove ambient credentials",
+            "includes": [
+              "credentials"
+            ]
+          },
+          {
+            "label": "Set quotas and cleanup",
+            "includes": [
+              "memory",
+              "destroy"
+            ]
+          }
         ],
         "hints": [
           "Make the repository read-only and use a separate temporary write mount.",
@@ -1357,11 +1692,36 @@
         "runCommand": "pytest tests/test_resumable_incident.py -q",
         "starterCode": "class IncidentWorker:\n    def resume(self, incident_id):\n        # TODO: load checkpoint, reconcile, trace, budget, and continue safely\n        raise NotImplementedError\n",
         "checks": [
-          {"label": "Load a checkpoint", "includes": ["checkpoint"]},
-          {"label": "Reconcile external state", "includes": ["reconcile"]},
-          {"label": "Use tracing", "includes": ["trace"]},
-          {"label": "Enforce budgets", "includes": ["budget"]},
-          {"label": "Prevent duplicates", "includes": ["idempot"]}
+          {
+            "label": "Load a checkpoint",
+            "includes": [
+              "checkpoint"
+            ]
+          },
+          {
+            "label": "Reconcile external state",
+            "includes": [
+              "reconcile"
+            ]
+          },
+          {
+            "label": "Use tracing",
+            "includes": [
+              "trace"
+            ]
+          },
+          {
+            "label": "Enforce budgets",
+            "includes": [
+              "budget"
+            ]
+          },
+          {
+            "label": "Prevent duplicates",
+            "includes": [
+              "idempot"
+            ]
+          }
         ],
         "hints": [
           "Approval wait should be a durable state, not a blocked thread.",
@@ -1440,16 +1800,42 @@
           "Classify known, unknown, and conflicting evidence.",
           "Map uncertainty to observation, abstention, or escalation.",
           "Require approval for high-risk action regardless of confidence.",
-          "Add an emergency-stop policy path."
+          "Add an emergency-stop policy path.",
+          "Implement deterministic confidence-gate and stagnation-detector functions, then test declining confidence, repeated evidence, and unresolved contradiction."
         ],
         "runCommand": "pytest tests/test_cognitive_safeguards.py -q",
         "starterCode": "def route_recommendation(recommendation, policy):\n    # TODO: known/unknown, confidence, conflict, risk, emergency stop\n    raise NotImplementedError\n",
         "checks": [
-          {"label": "Classify unknowns", "includes": ["unknown"]},
-          {"label": "Use confidence gating", "includes": ["confidence"]},
-          {"label": "Handle conflicts", "includes": ["conflict"]},
-          {"label": "Require approval", "includes": ["approval"]},
-          {"label": "Support emergency stop", "includes": ["emergency"]}
+          {
+            "label": "Classify unknowns",
+            "includes": [
+              "unknown"
+            ]
+          },
+          {
+            "label": "Use confidence gating",
+            "includes": [
+              "confidence"
+            ]
+          },
+          {
+            "label": "Handle conflicts",
+            "includes": [
+              "conflict"
+            ]
+          },
+          {
+            "label": "Require approval",
+            "includes": [
+              "approval"
+            ]
+          },
+          {
+            "label": "Support emergency stop",
+            "includes": [
+              "emergency"
+            ]
+          }
         ],
         "hints": [
           "Evaluate emergency-stop state before normal routing.",
@@ -1472,7 +1858,8 @@
         "Known-unknown and conflict classifier",
         "Confidence and risk gating tests",
         "Operator approval and emergency-stop drill",
-        "Governance checklist and audit report"
+        "Governance checklist and audit report",
+        "Confidence-gate and stagnation tests proving that uncertainty never expands authority"
       ]
     },
     {
@@ -1533,10 +1920,31 @@
         "runCommand": "pytest -q && python -m tools.run_readiness_review",
         "starterCode": "class ProductionReadinessReview:\n    def evaluate(self, evidence_pack):\n        # TODO: critical gates, ownership, runbooks, recovery, transfer plan\n        raise NotImplementedError\n",
         "checks": [
-          {"label": "Enforce critical gates", "includes": ["critical"]},
-          {"label": "Require service ownership", "includes": ["owner"]},
-          {"label": "Require recovery and rollback", "includes": ["recovery", "rollback"]},
-          {"label": "Include a transfer plan", "includes": ["transfer"]}
+          {
+            "label": "Enforce critical gates",
+            "includes": [
+              "critical"
+            ]
+          },
+          {
+            "label": "Require service ownership",
+            "includes": [
+              "owner"
+            ]
+          },
+          {
+            "label": "Require recovery and rollback",
+            "includes": [
+              "recovery",
+              "rollback"
+            ]
+          },
+          {
+            "label": "Include a transfer plan",
+            "includes": [
+              "transfer"
+            ]
+          }
         ],
         "hints": [
           "A warning can be accepted only with an owner and deadline; critical failures block release.",
