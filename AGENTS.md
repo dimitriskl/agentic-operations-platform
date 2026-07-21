@@ -23,6 +23,7 @@ The simulator path is documented in:
 ```text
 docs/context/3d-printer-agent-simulator.md
 docs/learning/3d-printer-agent-learning-track.md
+docs/learning/agent-engineering-knowledge-coverage.md
 ```
 
 Learning direction:
@@ -32,10 +33,33 @@ Learning direction:
 3. risk classification
 4. human approval
 5. audit logs
-6. evaluations
-7. AI agent recommendation layer
-8. optional OctoPrint Virtual Printer or Moonraker/Klipper integration
-9. real printer only after safety model is proven
+6. baseline evaluations
+7. AI recommendation layer with typed output
+8. persona, prompting, tracing, and a reliable single agent
+9. bounded reasoning/planning loops
+10. knowledge, memory, and RAG
+11. MCP and external emulator adapters
+12. multi-agent orchestration, A2A, typed handoffs, and guardrails
+13. advanced evaluation and human feedback
+14. deployment, observability, security, reliability, and cost control
+15. cognitive and metacognitive safeguards
+16. real printer only after all production-safety gates pass
+17. capstone and transfer to a second operational domain
+
+The full future coverage is documented in:
+
+\`\`\`text
+docs/learning/agent-engineering-knowledge-coverage.md
+\`\`\`
+
+Sequencing rules:
+
+- The coverage roadmap controls future scope; do not implement it all at once.
+- Complete the smallest current stage before introducing the next abstraction.
+- Do not add multi-agent orchestration before the single-agent path has evaluations.
+- Do not add real hardware before production safety, recovery, observability, and security gates pass.
+- Prefer framework-neutral contracts before provider-specific SDK code.
+- Keep decision summaries observable, but do not store or depend on hidden chain-of-thought.
 
 ## Current phase
 
