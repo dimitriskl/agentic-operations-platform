@@ -6,7 +6,7 @@ This repo is for learning Python only as needed to build agentic backend systems
 
 ## Interactive web course
 
-The complete curriculum is available as an English, Udacity-style web course at:
+The complete curriculum is available as an English web course at:
 
 ```text
 /course
