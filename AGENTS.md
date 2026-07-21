@@ -22,6 +22,7 @@ The simulator path is documented in:
 
 ```text
 docs/context/3d-printer-agent-simulator.md
+docs/learning/industrial-strength-agent-engineering-curriculum.md
 docs/learning/3d-printer-agent-learning-track.md
 docs/learning/agent-engineering-knowledge-coverage.md
 ```
@@ -35,26 +36,36 @@ Learning direction:
 5. audit logs
 6. baseline evaluations
 7. AI recommendation layer with typed output
-8. persona, prompting, tracing, and a reliable single agent
-9. bounded reasoning/planning loops
-10. knowledge, memory, and RAG
-11. MCP and external emulator adapters
-12. multi-agent orchestration, A2A, typed handoffs, and guardrails
-13. advanced evaluation and human feedback
-14. deployment, observability, security, reliability, and cost control
-15. cognitive and metacognitive safeguards
-16. real printer only after all production-safety gates pass
-17. capstone and transfer to a second operational domain
+8. persona, prompting, typed output, tracing, and a reliable single agent
+9. framework-neutral harness primitives and bounded reasoning/planning loops
+10. context delivery and context management
+11. knowledge, RAG, memory, conflict resolution, forgetting, and versioned skills
+12. MCP, multimodal observations, and external emulator adapters
+13. multi-agent orchestration, A2A, typed handoffs, and guardrails
+14. industrial evaluation, repeated reliability, fault injection, drift detection, and human feedback
+15. safe harness self-improvement with independent evaluation, approval, staged release, and rollback
+16. layered sandboxing, security, egress control, and blast-radius analysis
+17. deployment, observability, resilience, release engineering, and cost control
+18. cognitive safeguards, human operations, governance, and incident response
+19. real printer only after all production-safety gates pass
+20. capstone and transfer to a second operational domain
 
-The full future coverage is documented in:
+The canonical lesson catalog is:
 
-\`\`\`text
+```text
+docs/learning/industrial-strength-agent-engineering-curriculum.md
+```
+
+The coverage roadmap and completion criteria are:
+
+```text
 docs/learning/agent-engineering-knowledge-coverage.md
-\`\`\`
+```
 
 Sequencing rules:
 
-- The coverage roadmap controls future scope; do not implement it all at once.
+- The curriculum controls complete knowledge coverage; never remove a future lesson because implementation has not reached it.
+- The learning track controls implementation order; do not implement the complete curriculum at once.
 - Complete the smallest current stage before introducing the next abstraction.
 - Do not add multi-agent orchestration before the single-agent path has evaluations.
 - Do not add real hardware before production safety, recovery, observability, and security gates pass.
