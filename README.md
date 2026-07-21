@@ -33,6 +33,7 @@ Phase 0 — Python Bridge for C# Developer.
 The complete knowledge syllabus and its implementation path are documented in:
 
 - [Industrial-Strength Agent Engineering Curriculum](docs/learning/industrial-strength-agent-engineering-curriculum.md)
+- [AI Agents in Action Source Code Learning Map](docs/learning/ai-agents-in-action-source-code-learning-map.md)
 - [3D Printer AI Agent Learning Track](docs/learning/3d-printer-agent-learning-track.md)
 - [Agent Engineering Knowledge Coverage Roadmap](docs/learning/agent-engineering-knowledge-coverage.md)
 - [Training Strategy](docs/context/training-strategy.md)
