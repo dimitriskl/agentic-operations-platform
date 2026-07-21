@@ -25,6 +25,7 @@ docs/context/3d-printer-agent-simulator.md
 docs/learning/industrial-strength-agent-engineering-curriculum.md
 docs/learning/3d-printer-agent-learning-track.md
 docs/learning/agent-engineering-knowledge-coverage.md
+course/assets/lessons.json
 ```
 
 Learning direction:
@@ -50,11 +51,20 @@ Learning direction:
 19. real printer only after all production-safety gates pass
 20. capstone and transfer to a second operational domain
 
-The canonical lesson catalog is:
+The canonical curriculum and learner-facing lesson catalog are:
 
 ```text
 docs/learning/industrial-strength-agent-engineering-curriculum.md
+course/assets/lessons.json
 ```
+
+Web-course authoring rules:
+
+- All learner-facing lesson content must be in English.
+- Every module must have a stable web page containing learning outcomes, substantial theory, a worked example, a coding lab, hints, a reference solution, a quiz, and completion evidence.
+- The browser workspace may validate learner code structure but must never execute arbitrary learner code on the application server.
+- Real implementation exercises and automated tests remain repository-based.
+- Update the curriculum, lesson catalog, and course tests together whenever module coverage changes.
 
 The coverage roadmap and completion criteria are:
 
