@@ -37,6 +37,28 @@ After the current Python/FastAPI/Pydantic basics, move toward:
 9. evaluation dataset
 10. AI agent that recommends printer actions with structured output
 
+## Long-term knowledge coverage decision
+
+The project will eventually cover the broader agent-engineering knowledge areas described in:
+
+\`\`\`text
+docs/learning/agent-engineering-knowledge-coverage.md
+\`\`\`
+
+Future stages include:
+
+- agent persona, prompting, typed outputs, and tracing
+- MCP tools, resources, prompts, clients, and servers
+- reasoning, planning, and bounded agentic loops
+- memory and RAG
+- multi-agent orchestration, typed handoffs, A2A, and guardrails
+- advanced evaluations and feedback
+- deployment, observability, security, reliability, and cost control
+- cognitive and metacognitive safeguards
+- capstone and transfer to a second operational domain
+
+These are future milestones. They do not change the immediate next implementation direction.
+
 ## Important safety policy
 
 Do not allow an AI agent to send arbitrary G-code.
@@ -63,6 +85,7 @@ AGENTS.md
 docs/context/training-strategy.md
 docs/context/3d-printer-agent-simulator.md
 docs/learning/3d-printer-agent-learning-track.md
+docs/learning/agent-engineering-knowledge-coverage.md
 docs/context/current-learning-update.md
 ```
 
