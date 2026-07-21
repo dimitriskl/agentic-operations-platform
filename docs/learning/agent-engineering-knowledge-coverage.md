@@ -6,6 +6,16 @@ This roadmap extends the project-first 3D printer learning track so the Agentic 
 
 The roadmap is informed by the topic coverage of *AI Agents in Action, Second Edition*, but the project remains independent of the book and does not copy its text or examples. Every topic must become working project output, not passive theory.
 
+## Canonical lesson catalog
+
+The complete course is maintained in:
+
+~~~text
+docs/learning/industrial-strength-agent-engineering-curriculum.md
+~~~
+
+That curriculum is the source of truth for knowledge coverage. It contains the full lesson catalog, hands-on lab, and completion evidence for every module. Curriculum coverage is independent of current code progress: a future topic remains part of the course even when its implementation has not started.
+
 ## Non-negotiable learning rules
 
 - Keep the 3D printer simulator as the first operational domain.
@@ -32,7 +42,7 @@ The current learning track already covers:
 - OctoPrint or Moonraker/Klipper integration
 - real-hardware safety boundaries
 
-## Knowledge areas to add
+## Core knowledge areas covered
 
 ### 1. Agent foundations and persona
 
@@ -203,6 +213,84 @@ Complete the learning path with:
 - an operational runbook
 - a final evaluation report covering reliability, safety, security, cost, and maintainability
 
+## Industrial-strength harness additions
+
+The curriculum explicitly includes the following areas in addition to the original book-oriented roadmap.
+
+### Harness engineering as an architecture discipline
+
+- model, harness, and operator-interface boundaries
+- instructions, context, tools, execution environment, durable state, orchestration, skills, verification, and observability
+- a minimal framework-neutral agent loop built from primitives before SDK abstraction
+- control-plane and execution-plane separation
+- resumability and recovery
+
+Canonical lessons: Modules 0 and 3.
+
+### Context engineering
+
+- select, compress, persist, and isolate as explicit context operations
+- poisoning, distraction, confusion, and conflict failure modes
+- information lost in the middle of long contexts
+- tool selection degradation
+- context manifests and inspection of the exact model input
+- prompt-cache latency and cost trade-offs
+- context-preserving research, planning, implementation, and verification workflows
+
+Canonical lesson: Module 6.
+
+### Skills as reusable procedural knowledge
+
+- trigger, inputs, preconditions, procedure, output contract, and failure modes
+- progressive disclosure and loading
+- focused boundaries, least privilege, ownership, versioning, and deprecation
+- skill-specific evaluation, regression, and rollback
+- detection of stale or over-broad procedures
+
+Canonical lesson: Module 9.
+
+### Layered sandboxing and blast radius
+
+- language isolates and WebAssembly
+- operating-system sandboxing and syscall boundaries
+- Docker, user-space kernels, and microVM trade-offs
+- filesystem, process, network, device, secret, and tenant isolation
+- permission fatigue, tool attack surface, egress controls, cleanup, and incident evidence
+- a sandbox decision matrix based on threat, latency, cost, compatibility, and developer experience
+
+Canonical lesson: Module 14.
+
+### Safe harness self-improvement
+
+- weakness mining from traces, evaluations, incidents, and fallback logs
+- explicit editable and immutable surfaces
+- candidate changes proposed but never self-deployed
+- isolated implementation and independent regression evaluation
+- human review, staged release, monitoring, rollback, and kill switches
+- separation of proposer, evaluator, approver, and deployer authority
+
+Canonical lesson: Module 13.
+
+### Industrial reliability evaluation
+
+- outcome, trajectory, reliability, safety, cost, latency, and experience metrics
+- repeated trials, variance, pass-at-k, and pass-to-the-k
+- safe abstention versus confidently wrong output
+- calibrated model-based judges backed by human labels
+- long-horizon checkpoints, fault injection, recovery, and behavior-drift detection
+- fingerprinted datasets, configurations, traces, and result artifacts
+
+Canonical lesson: Module 12.
+
+### Memory conflict resolution
+
+- conflict handling between session, episodic, semantic, and procedural memory
+- authority, provenance, confidence, recency, and current device state
+- memory consolidation, retention, deletion, forgetting, poisoning, and leakage
+- evaluation of usefulness, contamination, conflicts, and correct forgetting
+
+Canonical lesson: Module 8.
+
 ## Coverage completion criteria
 
 A knowledge area is complete only when the repository contains:
@@ -217,4 +305,4 @@ A knowledge area is complete only when the repository contains:
 
 ## Sequencing rule
 
-The immediate next work remains the deterministic printer simulator. This roadmap controls future scope; it must not delay the current small learning slice.
+The immediate next work remains the deterministic printer simulator. This roadmap controls future implementation scope without limiting lesson coverage. All industrial-strength knowledge lessons remain in the canonical curriculum from the beginning, even when their code labs are scheduled for later.
