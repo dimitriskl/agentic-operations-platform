@@ -2,7 +2,9 @@
 
 ## Latest decision
 
-The learning path must include **AI handling of a 3D printer**.
+The repository must contain a complete, hands-on curriculum for a developer learning to build industrial-strength agents. Knowledge coverage is independent of the current code stage.
+
+The first applied learning path continues to include **AI handling of a 3D printer**.
 
 We will not start by buying or controlling a real printer.
 
@@ -39,25 +41,35 @@ After the current Python/FastAPI/Pydantic basics, move toward:
 
 ## Long-term knowledge coverage decision
 
-The project will eventually cover the broader agent-engineering knowledge areas described in:
+The canonical lesson catalog is:
 
-\`\`\`text
+```text
+docs/learning/industrial-strength-agent-engineering-curriculum.md
+```
+
+The coverage roadmap and completion criteria are:
+
+```text
 docs/learning/agent-engineering-knowledge-coverage.md
-\`\`\`
+```
 
 Future stages include:
 
-- agent persona, prompting, typed outputs, and tracing
-- MCP tools, resources, prompts, clients, and servers
+- framework-neutral harness engineering from primitives
+- agent instructions, persona, typed outputs, durable state, verification, and tracing
 - reasoning, planning, and bounded agentic loops
-- memory and RAG
-- multi-agent orchestration, typed handoffs, A2A, and guardrails
-- advanced evaluations and feedback
-- deployment, observability, security, reliability, and cost control
-- cognitive and metacognitive safeguards
+- context delivery and management, including selection, compression, persistence, isolation, and prompt-cache trade-offs
+- knowledge engineering, RAG, memory, conflict resolution, forgetting, and versioned skills
+- MCP, multimodal observations, external adapters, and protocol security
+- multi-agent orchestration, typed handoffs, A2A, and centralized execution guardrails
+- industrial evaluation, repeated reliability, calibrated judges, fault injection, and drift detection
+- safe harness self-improvement with weakness mining, independent evaluation, approval, staged release, and rollback
+- layered sandboxing, egress restrictions, security, and blast-radius control
+- deployment, observability, resilience, release engineering, and cost control
+- cognitive safeguards, human operations, governance, and incident response
 - capstone and transfer to a second operational domain
 
-These are future milestones. They do not change the immediate next implementation direction.
+These lessons are already part of the course, even when their implementations are future milestones. They do not change the immediate next implementation direction.
 
 ## Important safety policy
 
@@ -84,6 +96,7 @@ Codex should read these files before continuing:
 AGENTS.md
 docs/context/training-strategy.md
 docs/context/3d-printer-agent-simulator.md
+docs/learning/industrial-strength-agent-engineering-curriculum.md
 docs/learning/3d-printer-agent-learning-track.md
 docs/learning/agent-engineering-knowledge-coverage.md
 docs/context/current-learning-update.md
