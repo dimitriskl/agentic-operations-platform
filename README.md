@@ -8,6 +8,17 @@ This repo is for learning Python only as needed to build agentic backend systems
 
 Phase 0 — Python Bridge for C# Developer.
 
+## Learning roadmaps
+
+The immediate project-first path and the long-term agent-engineering coverage are documented in:
+
+- [3D Printer AI Agent Learning Track](docs/learning/3d-printer-agent-learning-track.md)
+- [Agent Engineering Knowledge Coverage Roadmap](docs/learning/agent-engineering-knowledge-coverage.md)
+- [Training Strategy](docs/context/training-strategy.md)
+- [Architecture](docs/architecture.md)
+
+The deterministic printer simulator remains the immediate next milestone. Advanced agent topics are introduced progressively only after the required tests, evaluations, safety, and observability gates exist.
+
 ## Day 1 goal
 
 Create a minimal FastAPI app with:
