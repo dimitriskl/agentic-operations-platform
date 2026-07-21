@@ -10,6 +10,23 @@ The curriculum is broader than the current repository implementation. A lesson m
 
 The first applied domain is a 3D printer simulator. The engineering principles must remain transferable to other operational domains.
 
+## Web course delivery contract
+
+The learner-facing version of every module is implemented as an English web lesson in `course/assets/lessons.json` and served at `/course/lessons/<slug>`.
+
+Every lesson page must combine:
+
+1. learning outcomes and substantial written theory
+2. a worked implementation example
+3. an applied scenario and coding tasks
+4. editable starter code with immediate structural feedback
+5. progressive hints and a reference solution
+6. a quiz with explanatory feedback
+7. completion evidence that connects the page to real repository work
+
+The web workspace supports reading, drafting, and formative feedback. It deliberately does not execute arbitrary learner code on the application server. Real code execution, tests, evaluations, security checks, and production evidence remain part of the repository labs.
+
+
 ## Course promise
 
 A developer who completes this curriculum should be able to:
