@@ -246,7 +246,7 @@ Build a bounded printer-diagnosis loop that records plans and actions, stops det
 ### Knowledge lessons
 
 - distinction between instructions, context delivery, RAG, memory, and context management
-- the four context operations: select, compress, persist, and isolate
+- the four context operations: select, compress, write or persist, and isolate
 - context failure modes: poisoning, distraction, confusion, and conflict
 - relevance, recency, authority, priority, and token-budget selection
 - position effects and information lost in the middle of long contexts
@@ -465,7 +465,7 @@ Mine recurring printer-agent failures and generate a candidate harness change. T
 - prompt instructions versus enforceable containment
 - threat modeling models, users, retrieved content, tools, dependencies, and external services
 - attack surface created by file access, code execution, package installation, child processes, network access, and credentials
-- runtime isolation with language isolates and WebAssembly
+- runtime isolation with V8-style language isolates and WebAssembly
 - operating-system sandboxing and syscall boundaries
 - Docker containers and their limits
 - user-space kernels such as gVisor
