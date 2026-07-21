@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A hands-on course for designing, building, evaluating, securing, and operating industrial-strength AI agents."
+    />
+    <title>Industrial-Strength AI Agents</title>
+    <link rel="stylesheet" href="/course/assets/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#course-main">Skip to lesson content</a>
+    <header class="topbar">
+      <a class="brand" href="/course" aria-label="Course home">
+        <span class="brand-mark">AO</span>
+        <span>
+          <strong>Agent Operations Academy</strong>
+          <small>Industrial-Strength AI Agents</small>
+        </span>
+      </a>
+      <div class="topbar-progress" aria-label="Course progress">
+        <span id="progress-label">0 of 18 lessons complete</span>
+        <div class="progress-track"><span id="progress-bar"></span></div>
+      </div>
+      <button id="menu-button" class="icon-button" type="button" aria-expanded="false" aria-controls="course-nav">
+        Lessons
+      </button>
+    </header>
+
+    <div class="course-shell">
+      <aside id="course-nav" class="sidebar" aria-label="Course lessons">
+        <div class="sidebar-heading">
+          <span>Course syllabus</span>
+          <strong>18 modules</strong>
+        </div>
+        <nav id="lesson-nav"></nav>
+      </aside>
+
+      <main id="course-main" tabindex="-1">
+        <div id="course-app" class="loading-card" aria-live="polite">
+          Loading course content…
+        </div>
+      </main>
+    </div>
+
+    <template id="error-template">
+      <section class="empty-state">
+        <p class="eyebrow">Course navigation</p>
+        <h1>Lesson not found</h1>
+        <p>The requested lesson is not part of this curriculum.</p>
+        <a class="button primary" href="/course">Return to the course</a>
+      </section>
+    </template>
+
+    <script src="/course/assets/app.js" defer></script>
+  </body>
+</html>
