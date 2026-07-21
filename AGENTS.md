@@ -23,6 +23,7 @@ The simulator path is documented in:
 ```text
 docs/context/3d-printer-agent-simulator.md
 docs/learning/industrial-strength-agent-engineering-curriculum.md
+docs/learning/ai-agents-in-action-source-code-learning-map.md
 docs/learning/3d-printer-agent-learning-track.md
 docs/learning/agent-engineering-knowledge-coverage.md
 course/assets/lessons.json
