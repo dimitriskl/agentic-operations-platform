@@ -629,6 +629,7 @@ Books, videos, courses, research papers, and official documentation are supporti
 Topic coverage is informed by:
 
 - AI-agent engineering books, including the areas covered by *AI Agents in Action, Second Edition*
+- the supplied book source-code package, mapped through [AI Agents in Action Source Code Learning Map](ai-agents-in-action-source-code-learning-map.md)
 - the Agentic Harness Masterclasses playlist topics: harness engineering, agent primitives, self-improvement, memory, context management, skills, sandboxing, and evaluation
 - official protocol, framework, security, and deployment documentation used at the time each lab is implemented
 
