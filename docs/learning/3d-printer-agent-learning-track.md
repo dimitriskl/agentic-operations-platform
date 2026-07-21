@@ -6,6 +6,8 @@ The goal is not to buy a printer immediately.
 
 The goal is to learn how to design reliable AI agents that can safely monitor, reason about, and control an operational system.
 
+This file controls the implementation sequence. The complete knowledge syllabus is maintained independently in [Industrial-Strength Agent Engineering Curriculum](industrial-strength-agent-engineering-curriculum.md). A lesson remains part of the course even when its hands-on implementation is scheduled for a later stage.
+
 A 3D printer is a good learning domain because it has:
 
 - hardware-like state
@@ -284,6 +286,9 @@ Learn and implement:
 - versioned persona and prompts
 - typed outputs and validation
 - agent traces and tool-call traces
+- the framework-neutral harness: model, history, instructions, context, tools, execution boundary, durable state, verification, tracing, and operator interface
+- control-plane and execution-plane separation
+- resumability and recovery
 - OpenAI Agents SDK only after the framework-neutral interfaces are stable
 
 Deliverables:
@@ -322,25 +327,33 @@ Deliverables:
 - loop-budget tests
 - evaluation comparing one-pass and iterative diagnosis
 
-## Stage 11 — Knowledge, memory, and RAG
+## Stage 11 — Context, knowledge, memory, RAG, and skills
 
 Ground recommendations in authoritative printer documentation.
 
 Learn and implement:
 
+- context delivery versus context management, RAG, and memory
+- select, compress, persist, and isolate context operations
+- context poisoning, distraction, confusion, conflict, and lost-in-the-middle failures
+- context manifests, compaction quality, prompt-cache cost, and inspection of exact model input
 - ingestion, chunking, embeddings, and retrieval
 - semantic, keyword, and hybrid search
 - evidence citations
 - session, semantic, episodic, and procedural memory
 - memory relevance, retention, compression, and forgetting
+- memory conflict resolution using authority, provenance, confidence, recency, and current device state
 - separation between authoritative knowledge and remembered experience
+- skills as versioned procedural artifacts with triggers, inputs, process, output contract, boundaries, progressive loading, ownership, evaluation, and rollback
 
 Deliverables:
 
+- context-management experiment comparing selection, compaction, persistence, and isolation
 - RAG over manuals and safety procedures
 - session memory for the current print job
 - episodic memory for past incidents
-- unsupported-recommendation and irrelevant-retrieval tests
+- one versioned printer-incident skill package
+- unsupported-recommendation, irrelevant-retrieval, context-conflict, and memory-conflict tests
 - retention and deletion policy
 
 ## Stage 12 — MCP and external emulator integration
@@ -358,19 +371,19 @@ Learn and implement:
 
 External targets:
 
-\`\`\`text
+```text
 OctoPrint Virtual Printer
 Moonraker / Klipper sandbox
-\`\`\`
+```
 
 The platform must keep printer control behind a common interface:
 
-\`\`\`text
+```text
 internal simulator
 OctoPrint
 Moonraker
 real printer
-\`\`\`
+```
 
 Deliverables:
 
@@ -398,11 +411,11 @@ Study and compare:
 
 Printer incident roles may include:
 
-\`\`\`text
+```text
 monitor
 diagnostician
 safety reviewer
-\`\`\`
+```
 
 The safety reviewer does not bypass the centralized approval and execution boundary.
 
@@ -424,7 +437,13 @@ Learn and implement:
 - grounding, critic, and evaluator agents
 - human annotations and disputed-outcome review
 - session and trace evaluation
-- prompt, tool, model, and policy regression suites
+- prompt, tool, model, skill, memory, policy, and harness regression suites
+- repeated trials, variance, pass-at-k, and pass-to-the-k reliability
+- safe abstention versus confidently wrong output
+- calibrated model-based judges backed by human labels
+- long-horizon checkpoints, fault injection, recovery, and behavior-drift detection
+- fingerprinted datasets, configurations, traces, and results
+- weakness mining and safe candidate harness improvements
 
 Required metrics:
 
@@ -441,6 +460,8 @@ Deliverables:
 - versioned evaluation dataset
 - deterministic and model-based evaluators
 - human-review workflow
+- safe improvement flow from weakness report to isolated candidate, independent evaluation, approval, staged release, and rollback
+- proof that the agent cannot approve or deploy its own changes
 - release gate that blocks safety regressions
 
 ## Stage 15 — Deployment, observability, security, and cost
@@ -457,6 +478,9 @@ Learn and implement:
 - timeouts, retries, fallbacks, circuit breakers, and budgets
 - model routing and cost control
 - identity, secrets, sandboxing, and egress control
+- runtime isolates, WebAssembly, operating-system sandboxes, Docker, user-space kernels, and microVM trade-offs
+- filesystem, process, network, device, secret, and tenant isolation
+- blast-radius analysis, approval fatigue, cleanup, and incident evidence
 - prompt-injection and data-exfiltration defenses
 - governance and policy enforcement
 
@@ -466,8 +490,9 @@ Deliverables:
 - health and readiness checks
 - end-to-end correlation
 - failure-injection tests
-- threat model
-- cost and latency report
+- threat model and attack-surface inventory
+- sandbox decision matrix with denied-access and cleanup tests
+- cost, latency, isolation, and compatibility report
 - rollback procedure
 
 ## Stage 16 — Cognitive and metacognitive safeguards
@@ -518,13 +543,38 @@ Complete the track with:
 - an architecture decision record comparing deterministic workflows, single agents, and multi-agent systems
 - a second operational domain proving that the architecture transfers
 
+## Curriculum integration
+
+The 18 stages determine when code is introduced. The curriculum determines what must eventually be taught and evidenced.
+
+| Project stages | Curriculum modules applied |
+| --- | --- |
+| 1-7 | reliability mindset, deterministic foundation, tools, policy, approvals, audit, and baseline evaluation |
+| 8-10 | models, instructions, typed output, harness primitives, planning, and bounded loops |
+| 11 | context engineering, knowledge, RAG, memory, forgetting, conflict resolution, and skills |
+| 12 | MCP, adapters, external emulators, protocol security, and integration contracts |
+| 13 | multi-agent orchestration, A2A, typed handoffs, context isolation, and centralized execution |
+| 14 | industrial evaluation, reliability, feedback, weakness mining, and safe harness improvement |
+| 15 | sandboxing, blast-radius control, deployment, observability, resilience, security, and cost |
+| 16 | cognitive safeguards, human operations, policy, and governance |
+| 17 | real-hardware safety and operational readiness |
+| 18 | production capstone and transfer to a second operational domain |
+
+At every stage, the relevant module must produce a knowledge note, hands-on lab, automated verification, evaluation evidence, trace or audit evidence, and a short trade-off decision.
+
 ## Extended knowledge coverage
 
-The durable agent-engineering topics, deliverables, and completion criteria are maintained in:
+The complete lesson catalog is:
 
-\`\`\`text
+~~~text
+docs/learning/industrial-strength-agent-engineering-curriculum.md
+~~~
+
+The coverage roadmap and completion criteria are:
+
+~~~text
 docs/learning/agent-engineering-knowledge-coverage.md
-\`\`\`
+~~~
 
 A knowledge area is not complete after reading about it. It is complete only after implementation, automated tests, evaluation scenarios, observable evidence, and a short trade-off note.
 
