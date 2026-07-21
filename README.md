@@ -4,6 +4,26 @@ Complete project-first, hands-on curriculum for building industrial-strength AI 
 
 This repo is for learning Python only as needed to build agentic backend systems.
 
+## Interactive web course
+
+The complete curriculum is available as an English, Udacity-style web course at:
+
+```text
+/course
+```
+
+Every lesson has a stable web page with:
+
+- substantial theory and learning outcomes
+- a worked code example
+- a hands-on implementation task
+- an editable browser workspace with structural checks, hints, and a reference solution
+- a knowledge quiz
+- explicit completion evidence
+
+Start the application with `fastapi dev src/main.py`, then open `http://127.0.0.1:8000/course`. Browser drafts and progress stay on the learner's device. The browser workspace does not execute arbitrary Python on the server; learners run the real lab tests inside the repository.
+
+
 ## Current phase
 
 Phase 0 — Python Bridge for C# Developer.
