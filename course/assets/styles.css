@@ -285,6 +285,15 @@ button, textarea { font: inherit; }
 .theory-section h3 { margin-bottom: 8px; }
 .theory-section p { color: #34465a; }
 
+.example-flow {
+  margin: 20px 0;
+  padding-left: 24px;
+}
+
+.example-flow li { margin-bottom: 16px; padding-left: 5px; }
+.example-flow li::marker { color: var(--blue); font-weight: 800; }
+.example-flow p { margin: 5px 0 0; }
+
 .callout {
   margin: 18px 0;
   padding: 16px 18px;
@@ -292,6 +301,36 @@ button, textarea { font: inherit; }
   border-radius: 0 10px 10px 0;
   background: #edfafa;
 }
+
+.command-guide {
+  margin: 22px 0;
+  padding: 20px;
+  border: 1px solid #b8d8e8;
+  border-radius: 12px;
+  background: #f4fbff;
+}
+
+.command-guide h3 { margin-top: 0; }
+
+.platform-commands {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.platform-commands pre { margin: 7px 0 0; }
+
+.command-explanation {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 10px 16px;
+  margin-bottom: 0;
+}
+
+.command-explanation dt { font-weight: 800; }
+.command-explanation dd { margin: 0; }
+.command-explanation ul { margin: 0; padding-left: 20px; }
 
 .outcome-list li, .task-list li, .completion-list li { margin-bottom: 8px; }
 
@@ -353,6 +392,9 @@ summary { cursor: pointer; font-weight: 750; }
   .hero { padding: 32px 24px; }
   .hero h1 { font-size: 2.35rem; }
   .lesson-header { padding: 28px 22px; }
+  .platform-commands { grid-template-columns: 1fr; }
+  .command-explanation { grid-template-columns: 1fr; gap: 5px; }
+  .command-explanation dd + dt { margin-top: 9px; }
   .pager .button { max-width: none; width: 100%; }
 }
 

@@ -123,6 +123,44 @@
       </article>`;
   }
 
+  function renderCommandGuide(practice) {
+    const guide = practice.commandGuide;
+    if (!guide) {
+      return `<div class="callout"><strong>Run locally:</strong> <code>${escapeHtml(practice.runCommand)}</code></div>`;
+    }
+
+    return `
+      <section class="command-guide" aria-labelledby="command-guide-title">
+        <p class="eyebrow">Run the tests locally</p>
+        <h3 id="command-guide-title">Understand the command before you run it</h3>
+        <p><strong>Terminal:</strong> ${escapeHtml(guide.terminal)}</p>
+        <div class="platform-commands">
+          <div>
+            <strong>Windows PowerShell</strong>
+            <pre><code>${escapeHtml(guide.windowsCommand)}</code></pre>
+          </div>
+          <div>
+            <strong>Ubuntu Bash</strong>
+            <pre><code>${escapeHtml(guide.ubuntuCommand)}</code></pre>
+          </div>
+        </div>
+        <dl class="command-explanation">
+          <dt>Why</dt>
+          <dd>${escapeHtml(guide.why)}</dd>
+          <dt>Program</dt>
+          <dd>${escapeHtml(guide.program)}</dd>
+          <dt>Parts</dt>
+          <dd><ul>${guide.parts.map((part) => `<li>${escapeHtml(part)}</li>`).join("")}</ul></dd>
+          <dt>Effect</dt>
+          <dd>${escapeHtml(guide.effect)}</dd>
+          <dt>Success evidence</dt>
+          <dd>${escapeHtml(guide.successEvidence)}</dd>
+          <dt>Failure recovery</dt>
+          <dd>${escapeHtml(guide.failureRecovery)}</dd>
+        </dl>
+      </section>`;
+  }
+
   function renderLesson(lesson) {
     const index = lessons.findIndex((item) => item.slug === lesson.slug);
     const previous = index > 0 ? lessons[index - 1] : null;
@@ -154,12 +192,20 @@
 
           <section id="theory" class="content-card">
             <p class="eyebrow">Part 1 · Theory</p>
-            <h2>Build the mental model</h2>
+            <h2>Understand the main ideas</h2>
             ${lesson.theory.map((section) => `
               <div class="theory-section">
                 <h3>${escapeHtml(section.heading)}</h3>
                 ${section.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}
-                ${section.takeaway ? `<div class="callout"><strong>Engineering takeaway:</strong> ${escapeHtml(section.takeaway)}</div>` : ""}
+                ${section.exampleSteps ? `
+                  <ol class="example-flow">
+                    ${section.exampleSteps.map((step) => `
+                      <li>
+                        <strong>${escapeHtml(step.name)}</strong>
+                        <p>${escapeHtml(step.description)}</p>
+                      </li>`).join("")}
+                  </ol>` : ""}
+                ${section.takeaway ? `<div class="callout"><strong>Rule to remember:</strong> ${escapeHtml(section.takeaway)}</div>` : ""}
               </div>`).join("")}
           </section>
 
@@ -177,14 +223,19 @@
             <ol class="task-list">
               ${lesson.practice.tasks.map((task) => `<li>${escapeHtml(task)}</li>`).join("")}
             </ol>
-            <div class="callout"><strong>Run locally:</strong> <code>${escapeHtml(lesson.practice.runCommand)}</code></div>
+            ${renderCommandGuide(lesson.practice)}
+            ${lesson.practice.codeGuide ? `
+              <div class="callout">
+                <strong>How to read the starter code</strong>
+                <ul>${lesson.practice.codeGuide.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul>
+              </div>` : ""}
 
             <div class="workspace">
-              <div class="workspace-header"><span>Browser draft workspace</span><span>Saved locally · not executed on the server</span></div>
+              <div class="workspace-header"><span>Code draft in your browser</span><span>Saved only here · the server does not run it</span></div>
               <textarea id="code-editor" class="code-editor" spellcheck="false" aria-label="Lesson code draft">${escapeHtml(savedDraft)}</textarea>
               <div class="workspace-actions">
                 <button id="save-draft" class="button" type="button">Save draft</button>
-                <button id="check-draft" class="button primary" type="button">Check structure</button>
+                <button id="check-draft" class="button primary" type="button">Check required parts</button>
                 <button id="copy-draft" class="button" type="button">Copy</button>
                 <button id="reset-draft" class="button" type="button">Reset</button>
               </div>
@@ -197,13 +248,13 @@
             </details>
             <details>
               <summary>Reference solution</summary>
-              <p>Compare the structure and safety properties. Do not copy without understanding the trade-offs.</p>
+              <p>Compare this solution with your code. Before you copy anything, make sure you understand why each part exists.</p>
               <pre><code>${escapeHtml(lesson.practice.solution)}</code></pre>
             </details>
           </section>
 
           <section id="checkpoint" class="quiz-card">
-            <p class="eyebrow">Knowledge checkpoint</p>
+            <p class="eyebrow">Short quiz</p>
             <h2>${escapeHtml(lesson.quiz.question)}</h2>
             <form id="quiz-form">
               ${lesson.quiz.options.map((option, optionIndex) => `
@@ -217,8 +268,8 @@
           </section>
 
           <section id="completion" class="content-card">
-            <p class="eyebrow">Completion evidence</p>
-            <h2>Prove that the lesson is complete</h2>
+            <p class="eyebrow">Proof of completion</p>
+            <h2>Save evidence of what you completed</h2>
             <ul class="completion-list">
               ${lesson.completionEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
             </ul>

@@ -8,103 +8,153 @@
     {
       "module": 0,
       "slug": "reliability-mindset",
-      "title": "Reliability Mindset and Agent Architecture",
-      "shortTitle": "Reliability mindset",
+      "title": "Building a Reliable AI Agent System",
+      "shortTitle": "Reliable agent systems",
       "duration": "70 min",
       "level": "Foundation",
       "projectStage": "1-18",
-      "summary": "Learn what makes an agent an operational system rather than an impressive model demo.",
+      "summary": "Learn why a reliable AI agent needs normal software, safety rules, and human control around the AI model.",
       "outcomes": [
-        "Distinguish an LLM feature, assistant, agent, workflow, and multi-agent system.",
-        "Separate probabilistic decisions from deterministic policy and execution.",
-        "Draw trust boundaries and identify actions that must never depend on model judgment alone.",
-        "Decide when a deterministic workflow is the better architecture."
+        "Explain the difference between an AI feature, an assistant, an agent, a workflow, and a multi-agent system.",
+        "Separate AI recommendations from rules and actions that normal code must control.",
+        "Identify trust boundaries: places where data or control moves between parts with different levels of permission.",
+        "Choose a simple, fixed workflow when an AI agent would add risk without adding enough value."
       ],
       "theory": [
         {
-          "heading": "A model is not an agent system",
+          "heading": "The AI model is only one part of the system",
           "paragraphs": [
-            "A language model transforms an input context into a probabilistic output. It does not own durable state, permissions, recovery, or business invariants. An agent system adds those responsibilities around the model: instructions, context, tools, state, policy, verification, observability, and an operator interface. Treating the model as the whole system hides the components that determine whether production behavior is safe and repeatable.",
-            "The useful mental model is a probabilistic component inside deterministic boundaries. The model may recommend a printer action, but deterministic code validates the schema, evaluates policy, requests approval, executes through a narrow adapter, and records the result."
+            "A large language model, or LLM, receives text and produces a likely answer. Its answer is probabilistic. This means that the same input can produce different answers at different times. Think of it as a C# method that can return a different reasonable result even when its arguments are the same. This is useful for understanding language, but it is not safe enough for every business rule.",
+            "The model does not automatically remember reliable information, control permissions, recover after a crash, or enforce business rules. Normal application code must do these jobs. An agent system is the complete application around the model. It includes instructions, data for the current request, approved functions that the model can ask to use, saved information, safety rules, checks, logs, and a screen for the human operator.",
+            "Imagine that a customer sends this message to an online shop: \"I paid for my order twice.\" The AI model reads the message and sends this suggestion back to the shop's application: \"I recommend refunding the second payment.\" The suggestion is only information. The model cannot move money and does not have access to the payment account.",
+            "Our application receives the suggestion and handles it in a fixed order. The model's job ends after it sends the suggestion. The following steps tell the same story again and attach the engineering name to each part."
           ],
-          "takeaway": "Keep model judgment replaceable and keep safety policy outside the prompt."
+          "exampleSteps": [
+            {
+              "name": "Check that the suggestion is complete — Pydantic",
+              "description": "The application checks that the model supplied an action, an order number, an amount, and a reason. In this example, the action is \"refund\" and the reason is \"the customer paid twice.\" Pydantic is ready-made Python code that performs this kind of data check. An incomplete or incorrectly formed suggestion stops here."
+            },
+            {
+              "name": "Apply the safety rules — policy code",
+              "description": "The application checks the shop's saved payment records and its fixed rules. For example, the records must show two payments for the same order, and the refund cannot be larger than the extra payment. Policy code is normal application code that contains these safety rules. The AI model cannot change them."
+            },
+            {
+              "name": "Ask a person — human approval",
+              "description": "A refund moves real money. The application shows the order, amount, and reason to a shop employee. Nothing happens until that person approves the refund."
+            },
+            {
+              "name": "Send the approved refund — payment adapter",
+              "description": "After approval, a small part of the application asks the payment company to return the money. This part is called the payment adapter. An adapter translates our application's request into the form understood by another system."
+            },
+            {
+              "name": "Save what happened — audit log",
+              "description": "The application saves the model's suggestion, the safety decision, the employee's approval, the refund request, and the result. This time-ordered record is called an audit log. It helps us understand exactly what happened later."
+            }
+          ],
+          "takeaway": "Use the model for recommendations. Use normal code for safety rules, permissions, and real actions."
         },
         {
-          "heading": "Degrees of agency",
+          "heading": "Choose how much freedom the software needs",
           "paragraphs": [
-            "An LLM feature produces text. An assistant maintains a user-facing interaction. An agent chooses among actions and reacts to observations. A workflow fixes the allowed sequence in code. A multi-agent system distributes responsibilities across multiple model-backed roles. More agency increases flexibility, but it also increases the number of states, failure paths, costs, and security boundaries that engineers must control.",
-            "Agency is not a quality badge. A deterministic state machine is often superior for payments, approvals, and hardware transitions. Use model reasoning only where interpretation or open-ended planning creates measurable value."
+            "AI systems can have different amounts of freedom. An AI feature performs one small task, such as summarizing an error message. An assistant talks with a user. The application saves earlier messages and gives them to the model again when needed. An agent can choose an approved function, ask the system to perform an action, observe the result, and decide what to do next. A workflow follows steps that developers have already written in code. A multi-agent system gives different responsibilities to several agents.",
+            "More freedom is not automatically better. Every extra choice creates more possible situations and more ways to fail. It can also increase cost and create new security problems. This is similar to choosing between a simple C# service method and software that can run many configurable sequences of steps. You should add the more complex design only when the problem needs it.",
+            "A deterministic system gives the same result when it receives the same saved information and input. A state machine is code that lists the allowed conditions of a system and the allowed moves between them. An online order can move from \"paid\" to \"shipped,\" but a cancelled order must not move to \"shipped.\" Fixed code is usually the better choice for payments, approvals, permissions, and physical-machine changes. Use an AI model when understanding language or creating a flexible plan gives clear value."
           ],
-          "takeaway": "Choose the minimum agency that solves the problem."
+          "takeaway": "Give the system only the amount of freedom that the problem requires."
         },
         {
-          "heading": "Industrial-strength criteria",
+          "heading": "What production-ready means",
           "paragraphs": [
-            "Industrial-strength agents are bounded, observable, testable, recoverable, secure, and economically operable. Bounded means explicit permissions, budgets, termination conditions, and safe stops. Observable means engineers can correlate a request with context construction, model calls, tool proposals, approvals, executions, and verification. Recoverable means work can resume or roll back after interruption.",
-            "Reliability also includes human factors. Operators need understandable evidence, usable approval screens, and an emergency stop. A system that is technically clever but cannot be audited or safely operated is not production ready."
+            "A production-ready agent has clear limits. We call this bounded behavior. The system limits which tools the agent may use, how much time or money it may spend, and how many steps it may take. It also has a safe way to stop. These limits prevent one incorrect model decision from becoming an unlimited sequence of actions.",
+            "The system must also be observable, testable, and recoverable. Observable means that engineers can follow one request from the request sent to the model through the proposed action, approval, real action, and final check. Testable means that automated tests can prove important behavior. Recoverable means that the system can continue safely, try an operation again, or return to an earlier safe condition after a crash or network failure.",
+            "People are part of reliability. An operator needs a clear approval screen that explains the proposed action and its risk. The operator also needs useful audit records and an emergency stop. Finally, the system must be secure and affordable to operate. A clever demo is not production-ready when people cannot understand, control, test, or recover it."
           ],
-          "takeaway": "Production readiness is demonstrated with evidence, not claimed in a prompt."
+          "takeaway": "Prove reliability with tests, limits, logs, recovery steps, and human controls."
         }
       ],
       "workedExample": {
-        "title": "Place the model behind a deterministic seam",
-        "explanation": "The model creates a proposal. Policy code decides whether the proposal may proceed.",
-        "code": "def handle_recommendation(state, recommendation, policy):\n    validated = Recommendation.model_validate(recommendation)\n    decision = policy.evaluate(state=state, action=validated.action)\n    if not decision.allowed:\n        return Rejected(reason=decision.reason)\n    if decision.requires_approval:\n        return PendingApproval(action=validated.action)\n    return execute_through_gateway(validated.action)"
+        "title": "Keep the model behind a fixed safety boundary",
+        "explanation": "Read the function from top to bottom. The order input contains the shop's saved order and payment information. The recommendation input contains the refund suggested by the AI model. RefundRecommendation is a Python class that lists the information a valid refund suggestion must contain. Its model_validate method is the Pydantic check. The policy object contains the fixed refund rules and returns a decision. Rejected and PendingApproval are result objects that clearly tell the rest of the application what happened. The payment service is the only part allowed to ask the payment company to return money. This is similar to keeping permission checks in a C# service instead of trusting values sent by a client.",
+        "code": "def handle_refund_recommendation(order, recommendation, policy):\n    validated = RefundRecommendation.model_validate(recommendation)\n    decision = policy.evaluate(order=order, refund=validated)\n    if not decision.allowed:\n        return Rejected(reason=decision.reason)\n    if decision.requires_approval:\n        return PendingApproval(refund=validated)\n    return refund_through_payment_service(validated)"
       },
       "practice": {
-        "title": "Map the system boundaries",
-        "scenario": "Create a small architecture model for the printer platform. Make model recommendations visible without allowing them to bypass policy.",
+        "title": "Describe the boundaries of the printer system",
+        "scenario": "The course project uses a simulated 3D printer. A 3D printer is a machine that makes a physical object by adding many thin layers of material. A simulator is a program that behaves like the printer, so no real machine is needed. Create a simple description of the important parts of this system. A trust boundary is a point where data or control moves between parts that have different permissions. The AI model may recommend an action, but it must not go around or skip the fixed safety rules.",
         "tasks": [
-          "Define deterministic, probabilistic, and human-controlled components.",
-          "Represent at least two trust boundaries.",
-          "List actions that require deterministic policy or human approval.",
-          "Record one case where no agent should be used."
+          "Add the AI model. Mark its output as untrusted. This means that the system must check the output before using it because it can vary.",
+          "Add the fixed safety-rule code and the printer command service as separate boundaries. The command service is the only part that may change the printer.",
+          "Add the human operator who has permission to approve high-risk actions.",
+          "Write down one situation where fixed code is safer and an AI agent should not be used."
         ],
         "runCommand": "pytest -q",
-        "starterCode": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass ArchitectureBoundary:\n    name: str\n    owner: str\n    trust_level: str\n\n\ndef production_boundaries() -> list[ArchitectureBoundary]:\n    # TODO: return model, policy, execution, and operator boundaries\n    return []\n",
+        "commandGuide": {
+          "terminal": "On Windows 10 or 11, open PowerShell. On Ubuntu, open Bash in the Terminal application. First activate the project's virtual environment. A virtual environment is an isolated folder that contains the Python tools and packages used by this project.",
+          "windowsCommand": "pytest -q",
+          "ubuntuCommand": "pytest -q",
+          "why": "Run the automated tests to check that your changes did not break existing behavior.",
+          "program": "pytest is a Python program that finds and runs automated tests. It is installed in the project's virtual environment.",
+          "parts": [
+            "pytest starts the program and searches the project folder for Python tests.",
+            "-q asks pytest to show shorter output. The letter q means quiet."
+          ],
+          "effect": "The command reads the project and runs its tests. It does not permanently change Windows or Ubuntu. It may create temporary files inside the project so that later test runs can start faster.",
+          "successEvidence": "The final line reports that all tests passed, for example: 8 passed. The exact number may increase as the project grows.",
+          "failureRecovery": "If PowerShell or Bash says that pytest was not found, the terminal cannot locate the pytest program. Confirm that the virtual environment is active. You should see its name, usually (.venv), at the start of the terminal prompt. If tests run but fail, read the first failure message and note the test file and line number."
+        },
+        "starterCode": "from dataclasses import dataclass\nfrom enum import StrEnum\n\n\nclass BoundaryKind(StrEnum):\n    MODEL = \"model\"\n    POLICY = \"policy\"\n    EXECUTION = \"execution\"\n    OPERATOR = \"operator\"\n\n\nclass BoundaryOwner(StrEnum):\n    AI_APPLICATION = \"ai_application\"\n    FIXED_POLICY_CODE = \"fixed_policy_code\"\n    PRINTER_COMMAND_SERVICE = \"printer_command_service\"\n    HUMAN = \"human\"\n\n\nclass AccessLevel(StrEnum):\n    UNTRUSTED = \"untrusted\"\n    TRUSTED_DECISION = \"trusted_decision\"\n    PRIVILEGED_ACTION = \"privileged_action\"\n    APPROVAL_AUTHORITY = \"approval_authority\"\n\n\n@dataclass(frozen=True)\nclass ArchitectureBoundary:\n    kind: BoundaryKind\n    owner: BoundaryOwner\n    access_level: AccessLevel\n\n\ndef production_boundaries() -> list[ArchitectureBoundary]:\n    # TODO: describe the model, policy, execution, and human boundaries.\n    return []\n",
+        "codeGuide": [
+          "from enum import StrEnum brings Python's string-enum type into this file. An enum defines a fixed set of named choices, like a C# enum. StrEnum is available in the Python version used by this course.",
+          "BoundaryKind.MODEL is a named enum member. The text value \"model\" is written once inside the enum instead of being repeated throughout the application. This prevents magic strings in the boundary objects.",
+          "class BoundaryKind(StrEnum) means that BoundaryKind is an enum whose stored values are text. The enum gives the code safe names, while the text values are useful when data is saved or returned as JSON.",
+          "from dataclasses import dataclass brings the dataclass helper into this file. A dataclass is a Python class made mainly to hold data. It is similar to a simple C# record.",
+          "@dataclass applies that helper to ArchitectureBoundary. The @ symbol starts a decorator. A decorator changes how the class works. frozen=True means that code cannot change an instance after creating it.",
+          "kind: BoundaryKind is a type hint. It says that kind must be one of the named values in BoundaryKind instead of any text value.",
+          "-> list[ArchitectureBoundary] is a return type hint. It says that the function returns a list whose items are ArchitectureBoundary objects.",
+          "TODO marks the part that you must complete. Replace the empty list with the four required boundaries."
+        ],
         "checks": [
           {
-            "label": "Represent the model boundary",
+            "label": "Include the AI model boundary",
             "includes": [
               "model"
             ]
           },
           {
-            "label": "Represent policy and execution",
+            "label": "Include the policy and execution boundaries",
             "includes": [
               "policy",
               "execution"
             ]
           },
           {
-            "label": "Represent the human operator",
+            "label": "Include the human operator boundary",
             "includes": [
               "operator"
             ]
           }
         ],
         "hints": [
-          "The model should not own credentials or execute printer commands directly.",
-          "Policy and execution can be separate even when they run in one process."
+          "Do not give printer credentials to the model. Credentials are secret values, such as a password or access key, that allow software to control the printer. The model should not send commands directly to the printer.",
+          "Safety-rule code decides whether an action is allowed. Printer command code performs the allowed action. Keep these responsibilities separate even if both currently run inside the same application."
         ],
-        "solution": "def production_boundaries() -> list[ArchitectureBoundary]:\n    return [\n        ArchitectureBoundary(\"model\", \"agent runtime\", \"untrusted recommendation\"),\n        ArchitectureBoundary(\"policy\", \"deterministic service\", \"trusted decision\"),\n        ArchitectureBoundary(\"execution\", \"tool gateway\", \"privileged side effect\"),\n        ArchitectureBoundary(\"operator\", \"human\", \"approval authority\"),\n    ]\n"
+        "solution": "def production_boundaries() -> list[ArchitectureBoundary]:\n    return [\n        ArchitectureBoundary(\n            kind=BoundaryKind.MODEL,\n            owner=BoundaryOwner.AI_APPLICATION,\n            access_level=AccessLevel.UNTRUSTED,\n        ),\n        ArchitectureBoundary(\n            kind=BoundaryKind.POLICY,\n            owner=BoundaryOwner.FIXED_POLICY_CODE,\n            access_level=AccessLevel.TRUSTED_DECISION,\n        ),\n        ArchitectureBoundary(\n            kind=BoundaryKind.EXECUTION,\n            owner=BoundaryOwner.PRINTER_COMMAND_SERVICE,\n            access_level=AccessLevel.PRIVILEGED_ACTION,\n        ),\n        ArchitectureBoundary(\n            kind=BoundaryKind.OPERATOR,\n            owner=BoundaryOwner.HUMAN,\n            access_level=AccessLevel.APPROVAL_AUTHORITY,\n        ),\n    ]\n"
       },
       "quiz": {
-        "question": "Where should a high-risk printer permission be enforced?",
+        "question": "Where must the shop enforce permission for a refund?",
         "options": [
-          "Only in the system prompt",
-          "In deterministic policy at the execution boundary",
-          "Inside the model provider",
-          "In the UI color scheme"
+          "Only in the instructions given to the AI model",
+          "In fixed safety-rule code immediately before requesting the real refund",
+          "Inside the company that provides the AI model",
+          "In the colors used by the approval screen"
         ],
         "answer": 1,
-        "explanation": "Prompts guide behavior, but deterministic policy must enforce permissions where the side effect occurs."
+        "explanation": "Model instructions can guide a recommendation, but the model can misunderstand or ignore them. Fixed safety-rule code must check permission at the execution boundary. The execution boundary is the last controlled point before the payment service requests the real refund."
       },
       "completionEvidence": [
-        "Architecture diagram with trust boundaries",
-        "ADR comparing deterministic workflow and agent choices",
-        "List of actions excluded from model authority",
-        "Automated boundary or policy test"
+        "A diagram of the system that names each trust boundary and who controls it",
+        "A short Architecture Decision Record (ADR). This is a file that records a technical choice and the reasons for it. Compare a fixed workflow with an AI agent.",
+        "A list of actions that the AI model is never allowed to perform directly",
+        "An automated test that proves one important boundary or policy rule"
       ]
     },
     {

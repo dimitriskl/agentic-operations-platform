@@ -24,6 +24,38 @@ Every lesson page must combine:
 6. a quiz with explanatory feedback
 7. completion evidence that connects the page to real repository work
 
+### Plain-English authoring standard
+
+Every lesson must teach a new idea in two passes:
+
+1. First, describe one complete and concrete example in ordinary English. State exactly what each person or software part does, what it returns, and what it is not allowed to do.
+2. Then repeat the same example as a short sequence of steps. Attach the correct technical term to each already-understood part.
+
+Do not introduce a library, framework, protocol, abbreviation, or architecture term before explaining the job it performs. Define the term at its first use with familiar words and a small example. For example, explain that the application first checks whether an AI suggestion contains an action and a reason; only then name Pydantic as the Python code that performs this check.
+
+Begin with a familiar example that does not require knowledge of the course's project domain. A simple online-shop, message, or everyday approval example is better than a 3D-printer example when the printer itself would need extra explanation. Introduce the project domain separately before asking the learner to apply the idea to it.
+
+When an interaction contains several parts, show the order explicitly. Answer practical questions such as “What does the model send?”, “Who receives it?”, “Who makes the safety decision?”, “Who performs the real action?”, and “What is saved afterward?” Do not make the learner reconstruct this flow from a dense paragraph.
+
+Use C#/.NET comparisons only after the plain-English explanation. A comparison should strengthen an explanation, not replace it.
+
+### Code-example best-practice standard
+
+All learner-facing code must demonstrate practices that the learner should copy into real code. Simplify the size of an example, but do not simplify it by introducing a poor design that must later be unlearned.
+
+In particular:
+
+- use the best current feature supported by the Python version taught by the course
+- use enums for a closed set of domain values instead of repeating magic strings
+- use clear names, type hints, and typed input and output contracts
+- prefer immutable data when values should not change after creation
+- validate data received from a user, model, file, network, or external service
+- keep safety policy separate from code that performs side effects
+- represent expected failures explicitly
+- include tests for meaningful behavior and important failure paths
+
+If an example intentionally omits a production concern to focus on one idea, state what is omitted and why. Never present intentionally weak code as the recommended solution.
+
 The web workspace supports reading, drafting, and formative feedback. It deliberately does not execute arbitrary learner code on the application server. Real code execution, tests, evaluations, security checks, and production evidence remain part of the repository labs.
 
 

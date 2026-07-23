@@ -71,6 +71,142 @@ def test_every_lesson_is_a_complete_english_theory_and_practice_page() -> None:
         assert not any("\u0370" <= character <= "\u03ff" for character in theory_text)
 
 
+def test_reliability_lesson_explains_its_command_for_windows_and_ubuntu() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+    lesson = next(
+        lesson for lesson in lessons if lesson["slug"] == "reliability-mindset"
+    )
+    guide = lesson["practice"]["commandGuide"]
+
+    assert guide["windowsCommand"] == "pytest -q"
+    assert guide["ubuntuCommand"] == "pytest -q"
+    assert "PowerShell" in guide["terminal"]
+    assert "Bash" in guide["terminal"]
+    assert guide["why"] and guide["program"] and guide["parts"]
+    assert guide["effect"] and guide["successEvidence"] and guide["failureRecovery"]
+
+
+def test_reliability_lesson_defines_specialized_terms_when_they_are_introduced() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+    lesson = next(
+        lesson for lesson in lessons if lesson["slug"] == "reliability-mindset"
+    )
+    learner_text = " ".join(
+        [
+            *(paragraph for section in lesson["theory"] for paragraph in section["paragraphs"]),
+            *(
+                step["description"]
+                for section in lesson["theory"]
+                for step in section.get("exampleSteps", [])
+            ),
+            lesson["workedExample"]["explanation"],
+            lesson["practice"]["scenario"],
+            *lesson["practice"]["hints"],
+            lesson["quiz"]["explanation"],
+            *lesson["completionEvidence"],
+        ]
+    ).lower()
+
+    assert "policy code is normal application code" in learner_text
+    assert "a state machine is code that lists" in learner_text
+    assert "credentials are secret values" in learner_text
+    assert "the execution boundary is the last controlled point" in learner_text
+    assert "a file that records a technical choice" in learner_text
+
+
+def test_reliability_lesson_explains_the_plain_flow_before_naming_its_parts() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+    lesson = next(
+        lesson for lesson in lessons if lesson["slug"] == "reliability-mindset"
+    )
+    first_section = lesson["theory"][0]
+    plain_example = " ".join(first_section["paragraphs"]).lower()
+    steps = first_section["exampleSteps"]
+    named_example = " ".join(
+        f"{step['name']} {step['description']}" for step in steps
+    ).lower()
+
+    assert "sends this suggestion back to the shop's application" in plain_example
+    assert "the model's job ends after it sends the suggestion" in plain_example
+    assert "i paid for my order twice" in plain_example
+    assert "i recommend refunding the second payment" in plain_example
+    assert "printer" not in plain_example
+    assert all(
+        term in named_example
+        for term in [
+            "pydantic",
+            "policy code",
+            "human approval",
+            "payment adapter",
+            "audit log",
+        ]
+    )
+    assert "pydantic is ready-made python code" in named_example
+    assert "an adapter translates" in named_example
+    assert "time-ordered record is called an audit log" in named_example
+    assert "a 3d printer is a machine that makes a physical object" in lesson[
+        "practice"
+    ]["scenario"].lower()
+
+
+def test_reliability_lesson_explains_the_python_starter_code() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+    lesson = next(
+        lesson for lesson in lessons if lesson["slug"] == "reliability-mindset"
+    )
+    code_guide = " ".join(lesson["practice"]["codeGuide"]).lower()
+
+    assert "like a c# enum" in code_guide
+    assert "prevents magic strings" in code_guide
+    assert "similar to a simple c# record" in code_guide
+    assert "the @ symbol starts a decorator" in code_guide
+    assert "frozen=true means" in code_guide
+    assert "kind: boundarykind is a type hint" in code_guide
+    assert "-> list[architectureboundary] is a return type hint" in code_guide
+
+
+def test_reliability_lesson_uses_enums_instead_of_boundary_magic_strings() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+    lesson = next(
+        lesson for lesson in lessons if lesson["slug"] == "reliability-mindset"
+    )
+    practice = lesson["practice"]
+    starter_code = practice["starterCode"]
+    solution = practice["solution"]
+
+    assert "from enum import StrEnum" in starter_code
+    assert "class BoundaryKind(StrEnum):" in starter_code
+    assert "class BoundaryOwner(StrEnum):" in starter_code
+    assert "class AccessLevel(StrEnum):" in starter_code
+    assert "kind: BoundaryKind" in starter_code
+    assert "owner: BoundaryOwner" in starter_code
+    assert "access_level: AccessLevel" in starter_code
+    assert "ArchitectureBoundary(\"" not in solution
+    assert "BoundaryKind.MODEL" in solution
+    assert "BoundaryOwner.AI_APPLICATION" in solution
+    assert "AccessLevel.UNTRUSTED" in solution
+
+
+def test_curriculum_requires_best_practices_in_learner_code() -> None:
+    curriculum_path = (
+        project_root
+        / "docs"
+        / "learning"
+        / "industrial-strength-agent-engineering-curriculum.md"
+    )
+    curriculum = curriculum_path.read_text(encoding="utf-8")
+
+    assert "### Code-example best-practice standard" in curriculum
+    assert "enums for a closed set of domain values" in curriculum
+    assert "instead of repeating magic strings" in curriculum
+    assert "Never present intentionally weak code" in curriculum
+
+
 def test_home_redirects_to_course_without_changing_api_routes() -> None:
     response = client.get("/", follow_redirects=False)
     health = client.get("/health")
