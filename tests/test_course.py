@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -205,6 +206,84 @@ def test_curriculum_requires_best_practices_in_learner_code() -> None:
     assert "enums for a closed set of domain values" in curriculum
     assert "instead of repeating magic strings" in curriculum
     assert "Never present intentionally weak code" in curriculum
+
+
+def test_every_lesson_starts_with_a_familiar_example_and_named_steps() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+
+    for lesson in lessons:
+        first_section = lesson["theory"][0]
+
+        assert "printer" not in first_section["paragraphs"][0].lower(), lesson["slug"]
+        assert len(first_section["exampleSteps"]) >= 3, lesson["slug"]
+        assert all(step["name"] and step["description"] for step in first_section["exampleSteps"])
+
+
+def test_every_lesson_explains_its_starter_code() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+
+    for lesson in lessons:
+        assert len(lesson["practice"]["codeGuide"]) >= 3, lesson["slug"]
+        assert all(lesson["practice"]["codeGuide"]), lesson["slug"]
+
+
+def test_every_starter_and_reference_solution_is_valid_python() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+
+    for lesson in lessons:
+        compile(
+            lesson["practice"]["starterCode"],
+            f"{lesson['slug']}:starter",
+            "exec",
+        )
+        compile(
+            lesson["practice"]["solution"],
+            f"{lesson['slug']}:solution",
+            "exec",
+        )
+
+
+def test_course_examples_use_modern_string_enums_instead_of_old_enum_mixin() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+    code = "\n".join(
+        snippet
+        for lesson in lessons
+        for snippet in [
+            lesson["workedExample"]["code"],
+            lesson["practice"]["starterCode"],
+            lesson["practice"]["solution"],
+        ]
+    )
+
+    assert not re.search(r"class\s+\w+\(str,\s*Enum\)", code)
+    assert "Literal[" not in code
+
+
+def test_every_lesson_command_renders_with_a_full_explanation() -> None:
+    catalog_path = project_root / "course" / "assets" / "lessons.json"
+    lessons = json.loads(catalog_path.read_text(encoding="utf-8"))["lessons"]
+    app_path = project_root / "course" / "assets" / "app.js"
+    app_source = app_path.read_text(encoding="utf-8")
+
+    assert "const defaultParts" in app_source
+    assert "windowsCommand: practice.runCommand" in app_source
+    assert "ubuntuCommand: practice.runCommand" in app_source
+    assert "Success evidence" in app_source
+    assert "Failure recovery" in app_source
+
+    for lesson in lessons:
+        command = lesson["practice"]["runCommand"]
+        assert command
+        if "&&" in command:
+            guide = lesson["practice"]["commandGuide"]
+            assert guide["windowsCommand"] and guide["ubuntuCommand"]
+            assert guide["why"] and guide["program"] and guide["parts"]
+            assert guide["effect"] and guide["successEvidence"]
+            assert guide["failureRecovery"]
 
 
 def test_home_redirects_to_course_without_changing_api_routes() -> None:

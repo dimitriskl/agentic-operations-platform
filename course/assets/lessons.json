@@ -160,42 +160,59 @@
     {
       "module": 1,
       "slug": "deterministic-foundation",
-      "title": "Deterministic Operational Foundations",
-      "shortTitle": "Deterministic foundation",
+      "title": "Reliable Rules and State Changes",
+      "shortTitle": "Rules and states",
       "duration": "90 min",
       "level": "Foundation",
       "projectStage": "1-7",
-      "summary": "Build the state, contracts, invariants, and tests that make later agent behavior safe to evaluate.",
+      "summary": "Use normal Python code to define allowed states, safe changes, clear errors, and repeatable tests before adding AI.",
       "outcomes": [
-        "Model operational behavior as explicit states and transitions.",
-        "Design typed commands, results, and errors.",
-        "Use idempotency and audit records to make side effects recoverable.",
-        "Create a simulator that can safely expose failure scenarios."
+        "List the valid states of a system and the allowed moves between them.",
+        "Create typed requests, results, and named errors.",
+        "Prevent a repeated request from performing the same real action twice.",
+        "Build a software simulator for testing success and failure without real hardware."
       ],
       "theory": [
         {
-          "heading": "State machines before language models",
+          "heading": "Write the rules before adding AI",
           "paragraphs": [
-            "Operational systems contain invariants. A paused printer can resume, but an idle printer cannot. A completed job cannot return to printing without a new job. Encoding these rules as a state machine makes valid behavior inspectable and testable. If the rules exist only in natural-language instructions, every model call becomes a new interpretation of safety-critical behavior.",
-            "The simulator is not throwaway code. It is the first executable specification of the domain and later becomes a test double for tools, agents, recovery, and security experiments."
+            "Think about an online order. A new order can become paid. A paid order can become shipped. A cancelled order must never become shipped. Write these rules in normal code before asking an AI model to help with orders.",
+            "A state is the current condition, such as NEW, PAID, SHIPPED, or CANCELLED. A transition is a move from one state to another. A state machine is code that lists the allowed states and transitions. An invariant is a rule that must always remain true. For example, a cancelled order is never shipped.",
+            "The printer simulator uses the same idea. It is a program that behaves like a printer without controlling real hardware. It becomes an executable specification: code that shows the exact printer rules and can be tested."
           ],
-          "takeaway": "The model may choose among valid transitions; it must not invent the transition system."
+          "exampleSteps": [
+            {
+              "name": "List the conditions — states",
+              "description": "Write every condition that matters. For an order, examples are NEW, PAID, SHIPPED, and CANCELLED."
+            },
+            {
+              "name": "List the allowed moves — transitions",
+              "description": "Write which state may follow another. For example, PAID may move to SHIPPED, but CANCELLED may not."
+            },
+            {
+              "name": "Block every other move — transition guard",
+              "description": "A guard is a fixed check that rejects an invalid move. The AI may suggest a move, but the guard makes the final decision."
+            }
+          ],
+          "takeaway": "Let AI suggest an allowed choice; never let it create or bypass the rules."
         },
         {
-          "heading": "Typed contracts and explicit errors",
+          "heading": "Make inputs, results, and failures clear",
           "paragraphs": [
-            "Typed commands distinguish intent from transport. A StartPrint command can carry a job identifier and material profile without depending on HTTP or a model tool schema. Results should state whether the command succeeded, changed state, required approval, or failed with a recoverable domain error.",
-            "Explicit contracts support adapters. The same command can target the in-memory simulator, OctoPrint, Moonraker, or real hardware while preserving policy and tests."
+            "A command is data that clearly describes a requested action. StartPrint can contain a job identifier and the material to use. A typed command states the required fields and the kind of value allowed in each field. This is similar to a C# request record.",
+            "A result should say exactly what happened: completed, rejected, waiting for approval, or failed. An explicit error is a named failure such as InvalidTransition. Named results and errors are easier to test than False or a vague message.",
+            "The command should describe the business request without depending on HTTP or one AI library. An adapter can translate the same command for the simulator or a future printer connection."
           ],
-          "takeaway": "Design domain contracts before API endpoints or model tools."
+          "takeaway": "Define the business data and errors before choosing the API or AI framework."
         },
         {
-          "heading": "Idempotency, audit, and replay",
+          "heading": "Make retries safe and actions traceable",
           "paragraphs": [
-            "Networks retry and workers restart. A command with the same idempotency key must not start the same print twice. Store the key, decision, before-state, after-state, and result so a retry returns the original outcome. Audit records should reconstruct important changes without relying on application logs that may be incomplete.",
-            "Replay does not mean blindly re-executing side effects. It means rebuilding an explanation of what happened and resuming from verified checkpoints."
+            "A network can lose a reply after an action succeeded. The caller may send the same request again. An idempotency key is a unique request identifier. When the application receives the same key twice, it returns the first result instead of performing the action twice.",
+            "Save the request key, decision, state before the action, state after the action, and result. This audit record lets an engineer reconstruct what happened.",
+            "Replay means rebuilding the history from saved records. It does not mean performing every real action again. Before continuing interrupted work, compare the saved state with the current real state."
           ],
-          "takeaway": "Every important side effect needs a stable identity and a durable account."
+          "takeaway": "Give every important action a unique identity and save enough information to explain it."
         }
       ],
       "workedExample": {
@@ -213,7 +230,13 @@
           "Add tests for valid and invalid transitions."
         ],
         "runCommand": "pytest tests/test_printer_simulator.py -q",
-        "starterCode": "from enum import Enum\n\nclass PrinterState(str, Enum):\n    IDLE = \"idle\"\n    PRINTING = \"printing\"\n    PAUSED = \"paused\"\n    CANCELLED = \"cancelled\"\n\n\nclass InvalidTransition(ValueError):\n    pass\n\n\ndef transition(current: PrinterState, target: PrinterState) -> PrinterState:\n    # TODO: enforce allowed transitions\n    return target\n",
+        "starterCode": "from enum import StrEnum\n\n\nclass PrinterState(StrEnum):\n    IDLE = \"idle\"\n    PRINTING = \"printing\"\n    PAUSED = \"paused\"\n    CANCELLED = \"cancelled\"\n\n\nclass InvalidTransition(ValueError):\n    pass\n\n\ndef transition(current: PrinterState, target: PrinterState) -> PrinterState:\n    # TODO: reject a target that is not allowed from the current state.\n    return target\n",
+        "codeGuide": [
+          "PrinterState is a StrEnum: a fixed set of named text values. It prevents state names from becoming repeated magic strings.",
+          "InvalidTransition inherits from ValueError. It gives an invalid state change a clear error type that tests can target.",
+          "current: PrinterState and -> PrinterState are type hints for the input and returned state.",
+          "Build the new state only after the allowlist check succeeds. A failed transition must leave existing state unchanged."
+        ],
         "checks": [
           {
             "label": "Use an explicit allowlist",
@@ -262,49 +285,65 @@
     {
       "module": 2,
       "slug": "models-instructions-typed-output",
-      "title": "Models, Instructions, Personas, and Typed Output",
-      "shortTitle": "Models and instructions",
+      "title": "AI Instructions and Checked Responses",
+      "shortTitle": "Checked AI responses",
       "duration": "85 min",
       "level": "Core agent engineering",
       "projectStage": "8-9",
-      "summary": "Turn model output into a versioned, validated recommendation rather than an unchecked string.",
+      "summary": "Give the AI a clear job, save conversation data in the application, and check every response before using it.",
       "outcomes": [
-        "Explain stateless model inference and application-managed history.",
-        "Design operational instructions and personas.",
-        "Validate structured outputs and fail safely.",
-        "Route models by capability, risk, latency, privacy, and cost."
+        "Explain why the application, not the AI model, must save conversation history.",
+        "Write instructions that define responsibilities, limits, and output format.",
+        "Check that an AI response contains required fields and allowed values.",
+        "Choose a model using task ability, risk, speed, privacy, and cost."
       ],
       "theory": [
         {
-          "heading": "Stateless inference and managed history",
+          "heading": "The application must manage the conversation",
           "paragraphs": [
-            "A model call receives a context and returns an output; the application decides which prior messages, facts, and instructions appear in the next call. Conversation memory is therefore a harness responsibility. Treating the provider session as magical memory makes behavior difficult to inspect, migrate, or reproduce.",
-            "Store the minimum durable information needed for the product, and rebuild model context from explicit sources. This makes privacy, retention, compaction, and replay policies possible."
+            "Imagine asking an AI model a question today and another question tomorrow. The model does not automatically remember yesterday's conversation. Each request contains the information the model may use, and the model returns one response. This request and response is called a model call.",
+            "Stateless means that the model itself does not own lasting conversation information between calls. If earlier messages matter, the application must save them and include the relevant parts in the next request.",
+            "Save only what the product needs. This lets the application control privacy, deletion, and retention, which means how long data is kept."
           ],
-          "takeaway": "Own the conversation state even when an SDK offers a convenient session abstraction."
+          "exampleSteps": [
+            {
+              "name": "Save useful facts — application history",
+              "description": "For a support conversation, save the order number and confirmed problem instead of assuming the model will remember them."
+            },
+            {
+              "name": "Choose what is needed now — context",
+              "description": "Context is the information included in the current model request. Add only the saved facts relevant to the new question."
+            },
+            {
+              "name": "Send one request — model call",
+              "description": "The application sends instructions, selected facts, and the new question. The model returns a response but does not own the saved history."
+            }
+          ],
+          "takeaway": "The application owns conversation data and chooses what the model sees each time."
         },
         {
-          "heading": "Instructions and persona are contracts",
+          "heading": "Instructions must describe responsibility and limits",
           "paragraphs": [
-            "A useful persona defines responsibility, evidence standards, escalation behavior, prohibited actions, and output format. It should not merely ask the model to sound like an expert. Instructions have different trust levels: application instructions are controlled, user requests are untrusted, and retrieved documents or tool output may contain hostile text.",
-            "Version instructions with the code and record the version in traces. A prompt change is a behavioral release and should pass regression evaluations before deployment."
+            "Instructions tell the model what job to perform, what evidence to use, what it must not do, when to ask for help, and how to format its response. A persona is the defined role and behavior of the model. It should say more than “sound like an expert.”",
+            "Not every piece of text has equal authority. The application controls its own instructions. A user request may be mistaken or malicious. Text loaded from a document or returned by another system may also contain unsafe instructions, so treat it as data.",
+            "Give every instruction set a version, just as you version code. A prompt is the text sent to the model. Changing it can change behavior, so test the new version against earlier cases before release."
           ],
-          "takeaway": "Operational personas specify behavior and boundaries, not personality adjectives."
+          "takeaway": "Write instructions as a testable job contract, not as a request for a writing style."
         },
         {
-          "heading": "Structured output as a safety seam",
+          "heading": "Check the model response before using it",
           "paragraphs": [
-            "A validated schema narrows the space between model language and application action. Validation should reject unknown actions, missing evidence, invalid risk levels, and oversized fields. Repair retries are useful for formatting errors, but repeated semantic failures should stop and escalate rather than loop indefinitely.",
-            "A typed recommendation is still untrusted input. Policy must independently classify risk and decide whether approval is required.",
-            "The OpenAI Agents SDK is one useful implementation of these primitives: Agent and Runner manage turns, function tools generate schemas, and output types, guardrails, handoffs, sessions, approvals, and tracing reduce boilerplate. Map each SDK feature back to an explicit harness contract so a framework upgrade cannot silently redefine policy or state ownership."
+            "A schema is a precise description of required fields and allowed values. Pydantic checks data against a schema. It can reject a recommendation with no evidence or an action that is not in the approved enum.",
+            "Validation proves that the response has the expected structure. It does not prove that the response is true or safe. Treat the validated recommendation as untrusted input, then apply fixed risk and approval rules.",
+            "An SDK is ready-made code that makes another product easier to use. An agent SDK can reduce repeated code for model calls, approved functions, sessions, approvals, and tracing. Keep your own typed contracts and safety rules around it so changing the SDK cannot silently change who owns state or permission."
           ],
-          "takeaway": "Schema validation makes model output parseable; policy makes it permissible."
+          "takeaway": "Validate the response structure first, then make a separate safety decision."
         }
       ],
       "workedExample": {
         "title": "Validate a recommendation contract",
         "explanation": "The schema constrains the response but does not grant permission to execute it.",
-        "code": "class Recommendation(BaseModel):\n    summary: str = Field(min_length=1, max_length=500)\n    action: Literal[\"observe\", \"pause_print\", \"request_review\"]\n    evidence: list[str] = Field(min_length=1)\n    confidence: float = Field(ge=0, le=1)\n    requires_approval: bool"
+        "code": "class RecommendationAction(StrEnum):\n    OBSERVE = \"observe\"\n    PAUSE_PRINT = \"pause_print\"\n    REQUEST_REVIEW = \"request_review\"\n\n\nclass Recommendation(BaseModel):\n    summary: str = Field(min_length=1, max_length=500)\n    action: RecommendationAction\n    evidence: list[str] = Field(min_length=1)\n    confidence: float = Field(ge=0, le=1)\n    requires_approval: bool"
       },
       "practice": {
         "title": "Design the first advisor response",
@@ -316,12 +355,18 @@
           "Write an invalid-output test."
         ],
         "runCommand": "pytest tests/test_recommendation.py -q",
-        "starterCode": "from typing import Literal\nfrom pydantic import BaseModel, Field\n\nclass Recommendation(BaseModel):\n    summary: str\n    action: str\n    evidence: list[str]\n    confidence: float\n    requires_approval: bool\n",
+        "starterCode": "from enum import StrEnum\n\nfrom pydantic import BaseModel, Field\n\n\nclass RecommendationAction(StrEnum):\n    OBSERVE = \"observe\"\n    PAUSE_PRINT = \"pause_print\"\n    REQUEST_REVIEW = \"request_review\"\n\n\nclass Recommendation(BaseModel):\n    # TODO: add length limits to summary and evidence.\n    summary: str\n    action: RecommendationAction\n    evidence: list[str]\n    # TODO: accept confidence values only from 0 through 1.\n    confidence: float\n    requires_approval: bool\n",
+        "codeGuide": [
+          "RecommendationAction is a StrEnum. The model can return only one named action from this closed set.",
+          "BaseModel is Pydantic's base class for checked data. Pydantic validates untrusted model output before application code uses it.",
+          "Field(min_length=1) rejects empty text or an empty evidence list. Field(ge=0, le=1) keeps confidence between 0 and 1.",
+          "A valid Recommendation has the correct structure. It still needs factual checks, risk policy, and possible approval."
+        ],
         "checks": [
           {
             "label": "Constrain allowed actions",
             "includes": [
-              "literal"
+              "recommendationaction"
             ]
           },
           {
@@ -339,10 +384,10 @@
           }
         ],
         "hints": [
-          "Use Literal for a small closed action set.",
+          "Use StrEnum for the closed recommendation-action set.",
           "Field constraints can reject empty evidence and invalid confidence."
         ],
-        "solution": "class Recommendation(BaseModel):\n    summary: str = Field(min_length=1, max_length=500)\n    action: Literal[\"observe\", \"pause_print\", \"request_review\"]\n    evidence: list[str] = Field(min_length=1)\n    confidence: float = Field(ge=0, le=1)\n    requires_approval: bool\n"
+        "solution": "class Recommendation(BaseModel):\n    summary: str = Field(min_length=1, max_length=500)\n    action: RecommendationAction\n    evidence: list[str] = Field(min_length=1)\n    confidence: float = Field(ge=0, le=1)\n    requires_approval: bool\n"
       },
       "quiz": {
         "question": "What does a valid structured model response prove?",
@@ -365,42 +410,63 @@
     {
       "module": 3,
       "slug": "harness-engineering",
-      "title": "Harness Engineering from First Principles",
-      "shortTitle": "Harness engineering",
+      "title": "Building the Application Around the AI Model",
+      "shortTitle": "The agent application",
       "duration": "110 min",
       "level": "Core agent engineering",
       "projectStage": "8-10, 15",
-      "summary": "Build the system around the model one primitive at a time before a framework hides the important seams.",
+      "summary": "Build one small agent turn yourself so you can see where information, permissions, actions, and checks belong.",
       "outcomes": [
-        "Identify the primitives that turn a model call into an agent system.",
-        "Implement a framework-neutral action-observation loop.",
-        "Separate the control plane from privileged execution.",
-        "Add durable state, verification, tracing, and interruption recovery."
+        "Identify the application parts needed around an AI model.",
+        "Build a small loop without depending on one agent framework.",
+        "Keep AI decisions separate from code that owns powerful permissions.",
+        "Save progress, check real results, follow requests through logs, and recover after restart."
       ],
       "theory": [
         {
-          "heading": "The harness owns reliability",
+          "heading": "The model needs a reliable application around it",
           "paragraphs": [
-            "Instructions, context delivery, context management, tools, execution environments, durable state, orchestration, skills, verification, observability, and the operator interface are harness concerns. Two systems using the same model can have radically different reliability because their harnesses expose different tools, preserve different state, and verify work differently.",
-            "High-level SDKs are valuable, but first-principles implementation reveals where messages are stored, how tools are selected, where permissions are checked, and how loops terminate. That understanding prevents framework defaults from becoming accidental architecture."
+            "Think of the AI model as one worker inside a larger service. The worker can read information and suggest a next step. The surrounding application supplies information, offers approved functions, saves progress, checks permissions, verifies results, and shows important decisions to a person.",
+            "This surrounding application is called the agent harness. Two applications can use the same model and still have very different reliability because their harnesses give different permissions, save different information, and perform different checks.",
+            "A high-level SDK can build parts of the harness. Before using one, build one small turn yourself. This makes it clear where messages are stored, where permission is checked, and why a loop stops."
           ],
-          "takeaway": "Improve the harness with evidence before assuming the model must change."
+          "exampleSteps": [
+            {
+              "name": "Prepare the request — context builder",
+              "description": "The application selects the instructions and facts needed for this one decision."
+            },
+            {
+              "name": "Suggest a next step — model",
+              "description": "The model returns a proposal. It does not directly perform the real action."
+            },
+            {
+              "name": "Check and perform — policy and gateway",
+              "description": "Fixed policy code decides whether the proposal is allowed. A gateway is the controlled part that performs an approved action."
+            },
+            {
+              "name": "Confirm the result — verifier",
+              "description": "A verifier is normal code that checks the real result instead of trusting a success sentence from the model."
+            }
+          ],
+          "takeaway": "The model proposes; the harness owns state, permission, execution, and proof."
         },
         {
-          "heading": "Control plane and execution plane",
+          "heading": "Keep deciding separate from doing",
           "paragraphs": [
-            "The control plane interprets goals, constructs context, plans, and proposes actions. The execution plane owns credentials and performs validated side effects. Keeping them separate means a prompt injection can influence a proposal but cannot directly become a privileged command.",
-            "The boundary should accept a typed action envelope containing identity, arguments, risk, approval evidence, idempotency key, and trace identifiers."
+            "The control plane is the part that understands the goal, prepares context, plans, and proposes actions. The execution plane is the part that owns secret access values and performs approved actions that change another system.",
+            "Keeping these parts separate limits damage. Unsafe text may influence a proposal, but it cannot directly become a command with powerful permissions.",
+            "Pass a typed action record between the two parts. It should contain the requester, action, arguments, risk, approval evidence, unique request key, and trace identifier used to follow the request through logs."
           ],
-          "takeaway": "The component that reasons should not be the component that holds broad credentials."
+          "takeaway": "The part that reasons should not hold the credentials used for real actions."
         },
         {
-          "heading": "Durable state and verification",
+          "heading": "Save progress and verify completion",
           "paragraphs": [
-            "Long-running work must survive process restarts and operator pauses. Persist the session, current plan, completed actions, observations, budgets, and pending approval. Resume only after reconciling durable state with the real external system.",
-            "An agent should not declare success because it produced confident language. Verification is a separate step that checks observable postconditions, such as the printer actually entering the paused state."
+            "Long work may wait for a person or continue after the application restarts. Durable state is information saved outside the running program so it survives a restart. Save the plan, completed actions, results, remaining budget, and pending approval.",
+            "Before resuming, compare the saved information with the external system. This comparison is called reconciliation. It prevents the application from continuing from an old or incorrect assumption.",
+            "Verification is a separate check that proves the expected result happened. Never mark work complete only because the model wrote a confident success message."
           ],
-          "takeaway": "No completed status without a verified postcondition."
+          "takeaway": "Completion means the expected result was observed and checked."
         }
       ],
       "workedExample": {
@@ -420,6 +486,12 @@
         ],
         "runCommand": "pytest tests/test_agent_harness.py -q",
         "starterCode": "from typing import Protocol\n\nclass Model(Protocol):\n    def propose(self, context: str) -> dict: ...\n\nclass Policy(Protocol):\n    def evaluate(self, action): ...\n\n\ndef run_harness(model: Model, policy: Policy, max_steps: int):\n    # TODO: propose, validate, evaluate, execute, observe, verify\n    raise NotImplementedError\n",
+        "codeGuide": [
+          "Protocol describes behavior that another class must provide. It is similar to a small C# interface and keeps the harness independent from one SDK.",
+          "The ellipsis (...) means the protocol declares a method signature but does not implement it.",
+          "Action.model_validate should convert the model's untrusted dictionary into a checked Action before policy sees it.",
+          "The loop must return distinct typed results for completion, escalation, and failure instead of a magic status string."
+        ],
         "checks": [
           {
             "label": "Use replaceable protocols",
@@ -471,43 +543,59 @@
     {
       "module": 4,
       "slug": "tools-permissions-approvals",
-      "title": "Tools, Permissions, Approvals, and Execution Policy",
-      "shortTitle": "Tools and permissions",
+      "title": "Safe Tools, Permissions, and Approval",
+      "shortTitle": "Safe tools",
       "duration": "100 min",
       "level": "Core agent engineering",
       "projectStage": "3-6, 8-10",
-      "summary": "Expose narrow capabilities while keeping identity, policy, approval, and side effects deterministic.",
+      "summary": "Give the AI only the functions it needs, check every permission in code, and bind approval to one exact action.",
       "outcomes": [
-        "Design clear and typed tool contracts.",
-        "Classify capabilities as read, propose, write, privileged, or forbidden.",
-        "Place approval at the actual side-effect boundary.",
-        "Handle retries, timeouts, partial failure, and untrusted tool output."
+        "Describe every tool with typed inputs, results, permissions, and failures.",
+        "Separate tools that read, suggest, change data, need special permission, or are forbidden.",
+        "Check human approval immediately before the real action.",
+        "Handle timeouts, safe retries, incomplete failures, and untrusted returned data."
       ],
       "theory": [
         {
-          "heading": "Tools are capability grants",
+          "heading": "An AI tool is permission to do something",
           "paragraphs": [
-            "A tool is not merely a function description for the model. It is an exposed capability with an owner, schema, permission level, credential scope, timeout, and failure contract. Tool descriptions should help selection, but the registry and gateway must enforce who may invoke the capability and under which conditions.",
-            "Start with a deny-by-default allowlist. Separate read tools from write tools and keep forbidden operations, such as arbitrary G-code, outside the registry entirely."
+            "Imagine a support assistant with two buttons: “read order” and “refund order.” Reading changes nothing. Refunding moves money. Giving both buttons to the AI model would give it two very different levels of power.",
+            "A tool is an approved function that the model may ask the application to use. A capability is the power the tool provides. Each tool needs a clear input schema, owner, permission level, time limit, and named failures.",
+            "Start with no tools allowed. Add only the tools required for the task. This is deny by default. An allowlist is the small list of permitted tools. Keep forbidden actions completely outside the list."
           ],
-          "takeaway": "If a capability is unsafe, do not rely on wording to hide it from the model."
+          "exampleSteps": [
+            {
+              "name": "Find the requested function — tool registry",
+              "description": "A registry is a controlled list of tools. It rejects a tool name that was never approved."
+            },
+            {
+              "name": "Check the requested power — execution policy",
+              "description": "Fixed rules decide whether the tool reads, writes, needs approval, or is forbidden."
+            },
+            {
+              "name": "Perform an allowed request — gateway",
+              "description": "The gateway performs the checked action with narrowly scoped credentials. The model never receives those secrets."
+            }
+          ],
+          "takeaway": "Do not expose a capability unless the application can enforce its limits."
         },
         {
-          "heading": "Approval is a state machine",
+          "heading": "Approval must match one exact action",
           "paragraphs": [
-            "Approval includes a proposed command, frozen arguments, risk classification, requester, approver, expiry, and final decision. Approval must bind to the exact action that will execute; changing parameters after approval invalidates the decision. The gateway verifies approval immediately before the side effect.",
-            "Approval is not containment. Repeated prompts create fatigue, and a user may approve a misleading request. Use least privilege and sandboxing even when a human is present.",
-            "SDK input and output guardrails can reject unsuitable content, but they are not the authorization boundary. Schema validation, deterministic business policy, human approval, and execution-time enforcement solve different problems. The lab must prove that bypassing a model-facing guardrail cannot bypass printer permissions."
+            "Suppose an employee approves a refund of €20 for order 123. That approval must not be reusable for €200 or another order. Store the exact command, requester, approver, risk, expiry time, and decision.",
+            "A fingerprint is a value calculated from the command and its arguments. If anything changes after approval, the fingerprint changes and the approval becomes invalid. Check it immediately before the real action.",
+            "Approval does not make unsafe access safe. People can become tired and approve misleading requests. Keep permissions small and enforce them in code. An SDK guardrail can reject unsuitable text, but it does not replace permission checks."
           ],
-          "takeaway": "Bind approval evidence to an immutable command envelope."
+          "takeaway": "Bind approval to one unchangeable command and check it at the last moment."
         },
         {
-          "heading": "Failure-aware execution",
+          "heading": "Do not guess what happened after a timeout",
           "paragraphs": [
-            "Tool calls cross unreliable boundaries. Use idempotency keys, bounded retries, explicit timeouts, and postcondition checks. A timeout does not prove that no side effect occurred, so reconciliation must query the target system before retrying a write.",
-            "Treat tool output as untrusted data. It may contain malformed values or instructions designed to influence the next model call. Normalize and label observations before returning them to the harness."
+            "A timeout means the application stopped waiting for a reply. It does not mean the external action failed. A refund may have completed even though the response was lost.",
+            "Before retrying an action that changes data, ask the external system for its current state. This is reconciliation. Use a unique request key so the system can detect a duplicate.",
+            "Treat returned data as untrusted. Check its structure, convert it into your own typed result, and label it as external data before giving it to the model."
           ],
-          "takeaway": "A retry policy must understand whether the operation is safe to repeat."
+          "takeaway": "Check the real state before repeating an action whose result is unknown."
         }
       ],
       "workedExample": {
@@ -527,6 +615,12 @@
         ],
         "runCommand": "pytest tests/test_tool_gateway.py -q",
         "starterCode": "class ToolGateway:\n    def __init__(self, registry, policy, approvals):\n        self.registry = registry\n        self.policy = policy\n        self.approvals = approvals\n\n    def execute(self, command, approval=None):\n        # TODO: lookup, classify, verify, invoke\n        raise NotImplementedError\n",
+        "codeGuide": [
+          "__init__ receives the registry, policy, and approval service as dependencies. This is constructor injection, like passing interfaces into a C# constructor.",
+          "approval=None means the caller may omit approval for low-risk actions. Policy must decide whether that is acceptable.",
+          "Look up the tool and evaluate policy before using credentials or performing a side effect.",
+          "Pass the command's idempotency key to the adapter so a duplicate request cannot silently repeat the action."
+        ],
         "checks": [
           {
             "label": "Use the registry",
@@ -582,43 +676,59 @@
     {
       "module": 5,
       "slug": "reasoning-planning-bounded-loops",
-      "title": "Reasoning, Planning, and Bounded Agent Loops",
-      "shortTitle": "Bounded reasoning loops",
+      "title": "Safe AI Loops with Clear Limits",
+      "shortTitle": "Limited AI loops",
       "duration": "105 min",
       "level": "Agent orchestration",
       "projectStage": "10, 16",
-      "summary": "Use iterative reasoning only with explicit budgets, progress signals, verification, and escalation.",
+      "summary": "Let an agent take several steps only when the application limits cost and time, checks progress, and knows when to stop.",
       "outcomes": [
-        "Compare ReAct, planning, reflection, and search patterns.",
-        "Design deterministic termination and progress checks.",
-        "Detect repetition and stagnation.",
-        "Choose a fixed workflow when free-form planning adds risk without value."
+        "Compare acting after each observation, planning first, learning from failure, and exploring alternatives.",
+        "Create fixed stopping rules and progress checks.",
+        "Detect repeated actions and work that is no longer progressing.",
+        "Use a fixed workflow when flexible planning adds risk without useful value."
       ],
       "theory": [
         {
-          "heading": "Observable reasoning patterns",
+          "heading": "A loop needs visible steps and a reason to stop",
           "paragraphs": [
-            "ReAct alternates between an action proposal and an observation. Planning creates an explicit task structure before action. Reflection uses results to revise a strategy. Search patterns explore alternatives but multiply cost and failure paths. These patterns are useful engineering structures; they do not require storing private chain-of-thought. Record concise plans, actions, observations, and decision summaries instead.",
-            "Select the simplest pattern that meets the task. A one-pass structured recommendation is easier to evaluate than an open loop and should remain the baseline.",
-            "Tree-of-Thought explores several candidate paths before selection, while Reflexion turns observed failure into bounded feedback for a later attempt. Both can improve difficult tasks, but branch count and reflection attempts multiply latency, cost, and failure exposure. Compare them as observable control structures without requesting or persisting hidden chain-of-thought."
+            "Imagine looking for a lost package. First check the tracking page. Then use the result to decide whether to check the delivery address or contact the carrier. This is a loop: choose an action, observe the result, and decide what comes next.",
+            "ReAct is the name for alternating an action and an observation. Planning writes the steps before acting. Reflection uses a failed result to change the next attempt. Search explores several possible plans. Record short plans, actions, observations, and decision summaries. Do not store private hidden reasoning.",
+            "Begin with one structured response when it solves the problem. More branches and retries increase time, cost, and ways to fail. Use more complex patterns only when evaluations show a real improvement."
           ],
-          "takeaway": "Add iteration only after one-pass behavior is reliable and measured."
+          "exampleSteps": [
+            {
+              "name": "Choose one safe check — action",
+              "description": "For the missing package, read the tracking status. Do not start with several unrelated actions."
+            },
+            {
+              "name": "Save the returned fact — observation",
+              "description": "Record that the carrier marked the package delivered at 14:00."
+            },
+            {
+              "name": "Check progress — verifier",
+              "description": "If the package is still missing, choose another approved check or ask a person for help."
+            }
+          ],
+          "takeaway": "Use the simplest visible reasoning pattern that solves the task."
         },
         {
-          "heading": "Budgets and termination",
+          "heading": "Set limits before the loop starts",
           "paragraphs": [
-            "Every loop needs maximum steps, wall-clock timeout, token ceiling, monetary budget, and allowed tool budget. Termination should depend on observable postconditions or explicit escalation, not on the model declaring that it is done. Budgets belong in deterministic state and must survive restart.",
-            "A budget exhaustion is an expected result, not an exception to hide. Return the current evidence, unresolved questions, and safe next action to an operator."
+            "Every loop needs a maximum number of steps, maximum running time, model-usage limit, cost limit, and tool-use limit. Store these limits in normal application state so they survive a restart.",
+            "Stop when fixed verification proves the goal, when a person must decide, or when a limit is reached. Do not stop only because the model says it is finished.",
+            "Reaching a limit is an expected result called budget exhaustion. Return the facts collected so far, the unanswered questions, and the safest next action."
           ],
-          "takeaway": "A loop without a deterministic stop condition is an availability incident waiting to happen."
+          "takeaway": "Every loop must have saved limits and fixed stopping conditions."
         },
         {
-          "heading": "Stagnation and safe strategy changes",
+          "heading": "Detect when the loop is no longer making progress",
           "paragraphs": [
-            "Repeated tool calls, identical observations, shrinking confidence, and plans that do not reduce unresolved work are stagnation signals. Track fingerprints of recent actions and observations. When progress stops, switch only to a pre-approved strategy or escalate.",
-            "Uncertainty must never increase authority. A stalled agent may request another read-only diagnostic, but it must not gain write permissions to force progress."
+            "Stagnation means the loop is running but not moving closer to the goal. Warning signs include the same action, the same result, lower confidence, or the same unanswered questions.",
+            "Save a fingerprint for each recent action and result. A fingerprint is a stable value used to recognize the same content again. Stop or use a pre-approved alternative when repetition is detected.",
+            "Uncertainty must not increase permission. A stalled agent may ask for another read-only check or human help, but it must not gain write access."
           ],
-          "takeaway": "Strategy changes may expand methods, not permissions."
+          "takeaway": "When progress stops, reduce activity and ask for help; never increase authority."
         }
       ],
       "workedExample": {
@@ -637,7 +747,13 @@
           "Compare one-pass, ReAct, bounded Tree-of-Thought, and bounded Reflexion on the same evaluation cases."
         ],
         "runCommand": "pytest tests/test_diagnosis_loop.py -q",
-        "starterCode": "from dataclasses import dataclass\n\n@dataclass\nclass LoopBudget:\n    max_steps: int\n    max_cost_usd: float\n\n\ndef diagnose(state, budget: LoopBudget):\n    # TODO: bounded loop, repetition detection, verification, escalation\n    raise NotImplementedError\n",
+        "starterCode": "from dataclasses import dataclass\nfrom decimal import Decimal\n\n\n@dataclass(frozen=True)\nclass LoopBudget:\n    max_steps: int\n    max_cost_usd: Decimal\n\n\ndef diagnose(state, budget: LoopBudget):\n    # TODO: stop on success, repetition, escalation, or exhausted budget.\n    raise NotImplementedError\n",
+        "codeGuide": [
+          "LoopBudget is frozen because limits must not change silently while the loop runs.",
+          "Decimal represents money without the binary rounding behavior of float. Use Decimal for monetary limits.",
+          "The loop should store fingerprints in a set because membership checks are fast and duplicate actions are not useful.",
+          "Return a typed terminal result such as Completed or Escalated instead of a boolean or magic status string."
+        ],
         "checks": [
           {
             "label": "Enforce max steps",
@@ -693,42 +809,59 @@
     {
       "module": 6,
       "slug": "context-engineering",
-      "title": "Context Delivery and Context Management",
-      "shortTitle": "Context engineering",
+      "title": "Choosing Information for the AI Model",
+      "shortTitle": "Choosing model context",
       "duration": "120 min",
       "level": "Agent intelligence infrastructure",
       "projectStage": "9-11, 13, 15",
-      "summary": "Control what reaches the model using selection, compression, persistence, and isolation.",
+      "summary": "Choose the smallest trustworthy set of instructions and facts needed for each AI request.",
       "outcomes": [
-        "Separate instructions, context delivery, RAG, memory, and context management.",
-        "Apply select, compress, write, and isolate operations.",
-        "Recognize poisoning, distraction, confusion, conflict, and lost-in-the-middle failures.",
-        "Measure token use, prompt-cache behavior, latency, and task quality."
+        "Separate fixed instructions, loaded information, saved memory, and the final model request.",
+        "Select relevant information, shorten it safely, save it, and isolate smaller tasks.",
+        "Recognize unsafe, irrelevant, confusing, conflicting, or overlooked information.",
+        "Measure input size, repeated-input reuse, response time, cost, and result quality."
       ],
       "theory": [
         {
-          "heading": "Context is a designed input",
+          "heading": "Choose what the model needs for this decision",
           "paragraphs": [
-            "The model only reasons over the context delivered for the current call. More context is not automatically better. Irrelevant logs distract, stale plans conflict with current state, and untrusted documents may poison instructions. Context delivery retrieves or loads material; context management decides what remains, where it appears, and what is excluded.",
-            "A context manifest should record each included item, source, authority, reason, token estimate, and transformation. This makes invisible input choices observable and testable."
+            "Imagine asking a colleague to solve one customer complaint. Giving the colleague every email from every customer would make the task harder, not easier. The AI model has the same problem.",
+            "Context is all information included in one model request. Context delivery loads possible information. Context management chooses what to include, where to place it, what to shorten, and what to leave out.",
+            "A context manifest is a list of every included item. Record its source, trust level, reason for inclusion, estimated size, and any change made to it."
           ],
-          "takeaway": "Inspect the actual model input, not the context you believe the framework sent."
+          "exampleSteps": [
+            {
+              "name": "Collect possible information — context delivery",
+              "description": "Load the current complaint, order status, refund policy, and recent messages."
+            },
+            {
+              "name": "Choose useful items — context management",
+              "description": "Include the current order and relevant policy. Exclude unrelated customers and old policies."
+            },
+            {
+              "name": "Record the choice — context manifest",
+              "description": "Save which items were included and why, so a test can reproduce the model request."
+            }
+          ],
+          "takeaway": "Build context deliberately; more text is not automatically better."
         },
         {
-          "heading": "Select, compress, write, isolate",
+          "heading": "Use four operations to control context",
           "paragraphs": [
-            "Select chooses the smallest relevant slice for the current decision. Compress replaces detail with a faithful summary that preserves invariants, open decisions, evidence, and unresolved work. Write persists durable artifacts such as plans and findings outside the prompt. Isolate gives a subtask a scoped context so its noise cannot contaminate the main task.",
-            "Each operation loses information or adds complexity. Test compaction against questions that require early, middle, and recent facts. Verify that isolation preserves only the handoff artifact needed by the parent."
+            "Select means keeping only relevant information. Compress means replacing long detail with a shorter faithful summary. The summary must preserve safety rules, evidence, decisions, and unanswered questions.",
+            "Write means saving plans or findings outside the model request so they can be loaded later. Isolate means giving one smaller task its own limited context so unrelated information does not distract it.",
+            "Shortening or separating information can lose important facts. Test summaries with questions about early, middle, and recent information."
           ],
-          "takeaway": "Context operations are lossy transformations and require evaluations."
+          "takeaway": "For every context change, state which information must be preserved."
         },
         {
-          "heading": "Position, tools, and cache economics",
+          "heading": "Placement and stability affect quality, speed, and cost",
           "paragraphs": [
-            "Important information can be missed in the middle of long prompts. Tool selection also degrades when many similar tools compete for attention. Place stable instructions and critical constraints deliberately, retrieve only relevant tools, and use scoped registries.",
-            "Prompt caches reward stable prefixes. Reordering the entire context every turn may be logically correct but slower and more expensive. Measure cache hits, input tokens, latency, and outcome quality together rather than optimizing tokens in isolation."
+            "Important information can be overlooked in the middle of a very long request. Place stable instructions and critical safety rules clearly. Offer only the tools relevant to the current task.",
+            "A prompt cache lets a model service reuse unchanged beginning sections of repeated requests. Reordering everything on every call can prevent this reuse.",
+            "Measure response quality together with input size, response time, cost, and cache use. Reducing text is not an improvement if the model loses a critical rule."
           ],
-          "takeaway": "A smaller prompt can still cost more if it destroys a valuable cached prefix."
+          "takeaway": "Optimize context for correct results first, then speed and cost."
         }
       ],
       "workedExample": {
@@ -747,6 +880,12 @@
         ],
         "runCommand": "pytest tests/test_context_builder.py -q",
         "starterCode": "class ContextBuilder:\n    def build(self, sources, token_budget: int):\n        # TODO: select, compress, persist, isolate, and return a manifest\n        raise NotImplementedError\n",
+        "codeGuide": [
+          "ContextBuilder owns the rule for turning possible sources into one model request. Keeping it in one component makes the decision testable.",
+          "token_budget is the maximum input size allowed for this build. The builder must not silently exceed it.",
+          "Return a typed ContextManifest that records included sources and transformations instead of returning an unexplained string.",
+          "Rank authority and permission before relevance so an attractive untrusted source cannot replace approved policy."
+        ],
         "checks": [
           {
             "label": "Select relevant inputs",
@@ -806,43 +945,50 @@
     {
       "module": 7,
       "slug": "knowledge-engineering-rag",
-      "title": "Knowledge Engineering and Retrieval-Augmented Generation",
-      "shortTitle": "Knowledge and RAG",
+      "title": "Finding Trustworthy Knowledge",
+      "shortTitle": "Trustworthy knowledge",
       "duration": "115 min",
       "level": "Agent intelligence infrastructure",
       "projectStage": "11",
-      "summary": "Ground decisions in authoritative, versioned evidence and teach the agent to abstain when evidence is insufficient.",
+      "summary": "Find approved source material, connect answers to exact evidence, and refuse to guess when evidence is weak.",
       "outcomes": [
-        "Design ingestion, chunking, metadata, retrieval, and reranking.",
-        "Combine semantic, keyword, and filtered retrieval.",
-        "Require citations and evidence sufficiency.",
-        "Evaluate relevance, groundedness, freshness, and malicious documents."
+        "Prepare documents for search without losing source identity or important structure.",
+        "Combine searches by meaning, exact words, and approved document properties.",
+        "Require exact source references and enough evidence for every answer.",
+        "Test relevance, evidence support, current versions, and malicious documents."
       ],
       "theory": [
         {
-          "heading": "Knowledge needs provenance",
+          "heading": "Know where every fact came from",
           "paragraphs": [
-            "A retrieval system is not a bag of text. Each source needs identity, version, authority, access policy, effective date, and deletion lifecycle. A manufacturer safety manual and a forum comment should never appear equally authoritative simply because their embeddings are close to a query.",
-            "Normalize documents without erasing structure that matters, such as warnings, model numbers, tables, and procedural order. Chunk boundaries should preserve meaning and useful citations."
+            "Imagine asking, “How many days do I have to return this product?” The current shop policy is stronger evidence than an old customer comment. A system must not treat both texts as equally trustworthy.",
+            "Provenance means information about where a fact came from. Store the source, version, owner, date, permission rules, and deletion rules for every document.",
+            "When preparing documents for search, keep important structure such as warnings, tables, product numbers, and ordered steps. A chunk is one smaller piece of a document used for search. Each chunk must still make sense and point back to its source."
           ],
-          "takeaway": "Retrieval quality begins with source governance, not vector search."
+          "exampleSteps": [
+            {"name": "Find possible sources — retrieval", "description": "Search the current policy and other allowed documents for passages related to returns."},
+            {"name": "Check source identity — provenance", "description": "Keep the policy version, date, owner, and access rules with every passage."},
+            {"name": "Prefer the stronger source — authority", "description": "Use the current official policy before an old customer comment, even if the comment uses more similar words."}
+          ],
+          "takeaway": "A search result is useful only when its source and authority are known."
         },
         {
-          "heading": "Hybrid retrieval and reranking",
+          "heading": "Search by meaning and by exact words",
           "paragraphs": [
-            "Semantic retrieval captures meaning; keyword retrieval preserves exact identifiers and error codes. Metadata filters enforce product model, version, language, tenancy, and access. Hybrid retrieval collects candidates, and reranking orders them for the current question.",
-            "The query may need decomposition. A printer failure question can separately retrieve the error-code definition, current model procedure, and safety constraints, then combine evidence.",
-            "A vector database such as Chroma is an adapter, not the knowledge architecture. Put it behind a retrieval port, preserve source metadata and authorization filters, and prove that a second implementation can satisfy the same contract. This keeps storage-specific APIs out of grounding and policy logic."
+            "Semantic search looks for similar meaning. Keyword search looks for exact words, numbers, or error codes. Hybrid retrieval combines both. Metadata filters remove documents with the wrong version, language, customer, or permission.",
+            "Reranking means ordering the remaining results for this question. A complex question may be split into smaller searches and then recombined.",
+            "A vector database stores numeric representations used for meaning-based search. Chroma is one example. Keep it behind your own retrieval interface so storage-specific code does not enter safety or answer logic."
           ],
-          "takeaway": "Use multiple retrieval signals and keep authorization before relevance."
+          "takeaway": "Check permission first, then combine exact-word and meaning-based search."
         },
         {
-          "heading": "Grounding and abstention",
+          "heading": "Answer from evidence or say that evidence is missing",
           "paragraphs": [
-            "The answer should cite the exact evidence supporting important claims. If retrieved material is irrelevant, contradictory, stale, or insufficient, the safe result is an abstention or a request for more information. Generating a fluent answer is not a substitute for evidence.",
-            "Evaluate retrieval and generation separately. A correct answer with bad retrieval may be accidental; good retrieval with an unsupported answer reveals a synthesis problem."
+            "Grounding means connecting an answer to supporting evidence. Add a citation that identifies the exact source passage for every important claim.",
+            "Abstention means deliberately refusing to answer when evidence is missing, old, conflicting, or unrelated. A clear refusal is safer than a confident guess.",
+            "Test search separately from answer writing. This reveals whether a failure came from selecting the wrong evidence or using good evidence incorrectly."
           ],
-          "takeaway": "Measure whether the answer is supported, not merely whether it sounds correct."
+          "takeaway": "A clear unsupported-answer refusal is better than a fluent guess."
         }
       ],
       "workedExample": {
@@ -862,6 +1008,12 @@
         ],
         "runCommand": "pytest tests/test_printer_rag.py -q",
         "starterCode": "def answer_question(question, printer_model, retriever):\n    # TODO: filter, retrieve, rerank, cite, or abstain\n    raise NotImplementedError\n",
+        "codeGuide": [
+          "retriever is an injected dependency. The function depends on your retrieval contract, not directly on Chroma or another database.",
+          "Apply access and printer-model filters before retrieved text can reach the model.",
+          "Return a typed GroundedAnswer with citations or a typed Abstention. Do not return an unsupported text answer.",
+          "Keep the evidence threshold in versioned configuration so evaluations can identify which value produced a result."
+        ],
         "checks": [
           {
             "label": "Apply metadata filters",
@@ -916,48 +1068,54 @@
     {
       "module": 8,
       "slug": "memory-architecture",
-      "title": "Memory Architecture, Conflict Resolution, and Forgetting",
-      "shortTitle": "Memory architecture",
+      "title": "Saving and Forgetting Useful Memory",
+      "shortTitle": "Safe memory",
       "duration": "105 min",
       "level": "Agent intelligence infrastructure",
       "projectStage": "11, 16",
-      "summary": "Store useful experience without allowing stale, poisoned, or private memory to overrule current authoritative facts.",
+      "summary": "Save useful information with clear purpose and lifetime, while ensuring current trusted facts always win.",
       "outcomes": [
-        "Distinguish working, episodic, semantic, and procedural memory.",
-        "Design memory read, write, merge, retention, and deletion policies.",
-        "Resolve conflicts using authority, provenance, confidence, recency, and current state.",
-        "Evaluate usefulness, contamination, leakage, and correct forgetting."
+        "Separate current-task information, past events, lasting facts, and procedures.",
+        "Define rules for saving, reading, combining, expiring, and deleting memory.",
+        "Resolve conflicts using source authority, current facts, confidence, and time.",
+        "Test usefulness, unsafe influence, private-data exposure, and complete deletion."
       ],
       "theory": [
         {
-          "heading": "Different memories serve different jobs",
+          "heading": "Store different kinds of memory separately",
           "paragraphs": [
-            "Working memory holds the current task state. Episodic memory records past events and outcomes. Semantic memory stores durable facts. Procedural memory describes how work is performed. Combining them in one untyped vector store hides different authority and retention rules.",
-            "Memory should be written deliberately. Not every conversation message deserves permanent storage, and model-generated summaries need provenance and confidence."
+            "Think about a support worker. The open case on the desk is different from a past case, a company fact, or a written procedure. Mixing all four together makes it hard to know which information is current.",
+            "Working memory holds the current task. Episodic memory stores past events. Semantic memory stores lasting facts. Procedural memory stores instructions for doing work.",
+            "Do not save every message forever. Decide why a memory is useful, who may read it, how long it should remain, and where it came from."
           ],
-          "takeaway": "Choose a memory type and lifecycle before choosing a database."
+          "exampleSteps": [
+            {"name": "Keep the open case — working memory", "description": "Store the current order number and unresolved question only while the case is active."},
+            {"name": "Keep a useful past event — episodic memory", "description": "Store that a similar delivery problem was solved by correcting the address."},
+            {"name": "Keep an approved procedure — procedural memory", "description": "Store the current company steps for verifying an address, with their version and owner."}
+          ],
+          "takeaway": "Choose the memory type, purpose, and lifetime before choosing storage."
         },
         {
-          "heading": "Conflict and authority",
+          "heading": "Current trusted facts must beat old memories",
           "paragraphs": [
-            "A remembered incident may say that a temperature was safe, while the current device state and latest safety manual disagree. Resolve conflicts deterministically: current observed state and authoritative policy outrank remembered experience. Recency alone is not authority, and similarity alone is not truth.",
-            "Preserve conflicting records when they matter for audit, but mark the winning source and reasoning in the result."
+            "A past order may contain an old delivery address while the customer's verified profile contains a new one. Similarity or age alone should not choose the winner.",
+            "Use fixed rules to rank sources. Current observed data and approved policy normally outrank remembered experience. Keep the losing record when it matters for audit, but state which source won and why."
           ],
-          "takeaway": "Memory informs decisions; it does not silently replace authoritative state."
+          "takeaway": "Memory may inform a decision, but it must not silently replace current trusted data."
         },
         {
-          "heading": "Forgetting is a feature",
+          "heading": "A safe memory system must forget",
           "paragraphs": [
-            "Retention limits cost, privacy exposure, and contamination. Expire low-value episodes, consolidate repeated patterns, and support deletion by user, tenant, or source. Ensure derived summaries and indexes are deleted with their source records.",
-            "Evaluate forgetting with negative tests: after deletion or expiry, the memory must not be retrievable or influence outputs."
+            "Retention is the rule for how long data is kept. Deleting old or low-value memories reduces cost, privacy risk, and the chance that old facts influence a new decision.",
+            "When a source is deleted, also delete summaries and search-index entries created from it. A negative test proves that deleted or expired data can no longer be found or affect an answer."
           ],
-          "takeaway": "A memory system is incomplete until deletion and non-recall are tested."
+          "takeaway": "Deletion is complete only when the data cannot be found or used again."
         }
       ],
       "workedExample": {
         "title": "Resolve a memory conflict",
         "explanation": "The resolver ranks current state and policy above episodic experience.",
-        "code": "PRIORITY = {\"policy\": 100, \"current_state\": 90, \"semantic\": 60, \"episodic\": 30}\n\ndef resolve(facts):\n    authorized = [fact for fact in facts if fact.access_allowed]\n    return max(authorized, key=lambda fact: (PRIORITY[fact.kind], fact.confidence, fact.observed_at))"
+        "code": "class EvidenceKind(StrEnum):\n    POLICY = \"policy\"\n    CURRENT_STATE = \"current_state\"\n    SEMANTIC_MEMORY = \"semantic_memory\"\n    EPISODIC_MEMORY = \"episodic_memory\"\n\n\nPRIORITY = {\n    EvidenceKind.POLICY: 100,\n    EvidenceKind.CURRENT_STATE: 90,\n    EvidenceKind.SEMANTIC_MEMORY: 60,\n    EvidenceKind.EPISODIC_MEMORY: 30,\n}\n\n\ndef resolve(facts):\n    authorized = [fact for fact in facts if fact.access_allowed]\n    return max(\n        authorized,\n        key=lambda fact: (\n            PRIORITY[fact.kind],\n            fact.confidence,\n            fact.observed_at,\n        ),\n    )"
       },
       "practice": {
         "title": "Implement a memory policy",
@@ -969,7 +1127,13 @@
           "Add a deletion and non-recall test."
         ],
         "runCommand": "pytest tests/test_memory_policy.py -q",
-        "starterCode": "from dataclasses import dataclass\nfrom datetime import datetime\n\n@dataclass\nclass MemoryRecord:\n    kind: str\n    content: str\n    source: str\n    confidence: float\n    observed_at: datetime\n\n\ndef resolve_memory(records, current_state, policy):\n    # TODO: authority, access, conflict, and retention rules\n    raise NotImplementedError\n",
+        "starterCode": "from dataclasses import dataclass\nfrom datetime import datetime\nfrom enum import StrEnum\n\n\nclass MemoryKind(StrEnum):\n    WORKING = \"working\"\n    EPISODIC = \"episodic\"\n    SEMANTIC = \"semantic\"\n    PROCEDURAL = \"procedural\"\n\n\n@dataclass(frozen=True)\nclass MemoryRecord:\n    kind: MemoryKind\n    content: str\n    source: str\n    confidence: float\n    observed_at: datetime\n\n\ndef resolve_memory(records, current_state, policy):\n    # TODO: apply retention, access, authority, and conflict rules.\n    raise NotImplementedError\n",
+        "codeGuide": [
+          "MemoryKind is a StrEnum because memory type is a closed domain set, not arbitrary text.",
+          "MemoryRecord is frozen so saved evidence cannot be changed in place after creation.",
+          "observed_at records when the fact was observed. source records where it came from; neither value alone proves authority.",
+          "Filter expired and unauthorized records before ranking candidates, and return conflict details with the winner."
+        ],
         "checks": [
           {
             "label": "Use provenance",
@@ -1023,42 +1187,48 @@
     {
       "module": 9,
       "slug": "agent-skills",
-      "title": "Skills as Reusable Procedural Knowledge",
-      "shortTitle": "Agent skills",
+      "title": "Reusable Agent Procedures",
+      "shortTitle": "Agent procedures",
       "duration": "95 min",
       "level": "Agent intelligence infrastructure",
       "projectStage": "11, 15",
-      "summary": "Package expert procedures as focused, versioned, progressively loaded, and evaluated engineering artifacts.",
+      "summary": "Package one repeatable procedure with clear triggers, required inputs, steps, limits, checks, and versions.",
       "outcomes": [
-        "Distinguish skills from prompts, tools, workflows, and memory.",
-        "Define triggers, inputs, process, outputs, boundaries, and failure modes.",
-        "Use progressive disclosure to control context cost.",
-        "Own, version, measure, deprecate, and roll back skills."
+        "Explain how a reusable procedure differs from instructions, tools, fixed workflows, and memory.",
+        "Define when a procedure runs, what it needs, what it returns, and how it fails.",
+        "Load full instructions only after a small description matches the task.",
+        "Assign ownership, version, measure, retire, and roll back procedures."
       ],
       "theory": [
         {
-          "heading": "A skill is a procedural contract",
+          "heading": "A skill is a reusable procedure",
           "paragraphs": [
-            "A skill packages a repeatable method for a class of tasks. It declares when it applies, the inputs it expects, preconditions, steps, tools, output format, validation, and failure behavior. A prompt is text; a tool performs a capability; a workflow fixes control flow; a skill combines instructions and supporting assets into reusable procedural knowledge.",
-            "Focused skills are safer than broad expert prompts because their boundaries and non-goals can be tested."
+            "Imagine that a support team has a checklist for reviewing a damaged-package claim. The checklist says when to use it, which photos and order details are required, which steps to follow, and when to stop and ask a manager.",
+            "A skill packages this repeatable procedure for an agent. It declares its trigger, required inputs, conditions that must already be true, steps, allowed tools, output, checks, and failure behavior.",
+            "A prompt is text sent to a model. A tool performs one capability. A workflow fixes a sequence in code. A skill combines instructions and supporting files for a focused class of tasks."
           ],
-          "takeaway": "If a procedure cannot declare when it should not run, it is not a reliable skill."
+          "exampleSteps": [
+            {"name": "Recognize the situation — trigger", "description": "Activate the damaged-package skill only when a claim needs evidence review."},
+            {"name": "Check required information — preconditions", "description": "Require an order number and photos before starting the procedure."},
+            {"name": "Return a checked result — output contract", "description": "Produce a typed review result or a clear missing-information result, not an uncontrolled action."}
+          ],
+          "takeaway": "A reliable skill states when it runs, when it must not run, and what result it returns."
         },
         {
-          "heading": "Progressive loading",
+          "heading": "Load the full procedure only when needed",
           "paragraphs": [
-            "Loading every procedure into every prompt causes context bloat and tool confusion. Progressive disclosure first exposes compact skill metadata. The harness loads the full instructions, examples, scripts, templates, or references only after a trigger matches and policy allows activation.",
-            "The activation decision should be observable. Record the selected skill version, trigger evidence, loaded assets, and cost."
+            "Loading every procedure into every model request adds unrelated text and can confuse tool selection. Progressive loading first shows only a small name and description.",
+            "After the request matches the trigger and policy allows the skill, load its full instructions, examples, templates, and references. Record the selected version, reason, loaded files, and cost."
           ],
-          "takeaway": "Discover broadly, load narrowly."
+          "takeaway": "Show small descriptions first; load one full procedure only when it matches."
         },
         {
-          "heading": "Skills are living artifacts",
+          "heading": "Version and test skills like code",
           "paragraphs": [
-            "Skills need an owner, semantic version, compatibility constraints, change log, evaluations, and deprecation policy. Measure trigger precision, task success, false positives, latency, and token cost. A stale skill can repeat an obsolete procedure with high confidence.",
-            "Improve a skill through failed cases and regression evaluation, then release it like code."
+            "Every skill needs an owner, version, change history, supported environment, tests, and a retirement plan. A stale skill can repeat an old procedure with confidence.",
+            "Measure how often the skill activates correctly, activates incorrectly, completes its task, and how much time and model usage it costs. Test failed cases before releasing a changed version."
           ],
-          "takeaway": "Treat skill changes as behavioral releases with rollback."
+          "takeaway": "Release a skill change only after tests, evaluation, and a rollback plan."
         }
       ],
       "workedExample": {
@@ -1077,6 +1247,12 @@
         ],
         "runCommand": "pytest tests/test_printer_incident_skill.py -q",
         "starterCode": "class SkillRegistry:\n    def discover(self, request):\n        # TODO: return compact matching metadata\n        raise NotImplementedError\n\n    def load(self, skill_name, version):\n        # TODO: load the approved skill bundle\n        raise NotImplementedError\n",
+        "codeGuide": [
+          "discover returns compact metadata only. It must not load every skill's full instructions into context.",
+          "load requires both a stable skill name and an exact version so behavior is reproducible.",
+          "The registry must check required inputs and policy before returning an approved bundle.",
+          "Use typed SkillMetadata and SkillBundle results so discovery data cannot be confused with loaded instructions."
+        ],
         "checks": [
           {
             "label": "Implement discovery",
@@ -1130,49 +1306,54 @@
     {
       "module": 10,
       "slug": "protocols-mcp-a2a-multimodal",
-      "title": "MCP, A2A, Adapters, and Multimodal Integration",
-      "shortTitle": "Protocols and adapters",
+      "title": "Connecting Agents and External Systems",
+      "shortTitle": "System connections",
       "duration": "120 min",
       "level": "Integration engineering",
       "projectStage": "12-13",
-      "summary": "Connect agents to capabilities and other agents through typed, authenticated, and testable protocol boundaries.",
+      "summary": "Connect agents to tools, data, other agents, audio, and images through checked and permission-controlled boundaries.",
       "outcomes": [
-        "Explain MCP tools, resources, prompts, transports, and discovery.",
-        "Apply authentication, authorization, allowlists, and versioning to protocol boundaries.",
-        "Use A2A task and artifact contracts without decentralizing execution policy.",
-        "Treat voice and vision as untrusted, confidence-bearing observations."
+        "Explain how MCP lets an application discover tools, data, and reusable prompts.",
+        "Verify identity, permission, allowed capabilities, data structure, and versions.",
+        "Send typed tasks between agents without passing all credentials or permissions.",
+        "Treat information extracted from audio and images as uncertain evidence."
       ],
       "theory": [
         {
-          "heading": "MCP exposes capabilities, not trust",
+          "heading": "A standard connection does not make a server trustworthy",
           "paragraphs": [
-            "Model Context Protocol standardizes how clients discover and use tools, resources, and prompts. Discovery improves interoperability, but it does not make a remote server trustworthy. The client still needs authentication, authorization, capability allowlists, schema validation, timeouts, and output handling.",
-            "Local and remote transports have different trust and deployment boundaries. A local process can still be compromised, while a remote server adds network identity, tenancy, and data-residency concerns.",
-            "Teach the current standard transports explicitly: stdio for a client-managed local subprocess and Streamable HTTP for a remote service. Older HTTP plus SSE examples are migration material, not the default architecture. The remote lab must validate Origin, bind locally during development, authenticate clients, and handle session loss."
+            "A USB plug has a standard shape, but you still decide whether to trust the device you connect. A software protocol works in the same way: a shared format helps systems communicate but does not grant trust.",
+            "Model Context Protocol, or MCP, is a standard way for an AI application to discover and use tools, data resources, and reusable prompts from a server. The client must still verify identity, permission, input data, time limits, and returned data.",
+            "For a local server, stdio means reading and writing through the started program's standard input and output. For a remote server, Streamable HTTP sends messages over the network. Remote connections also need client authentication, allowed web origins, and recovery after a lost session."
           ],
-          "takeaway": "Protocol compatibility never replaces security policy."
+          "exampleSteps": [
+            {"name": "Ask what is available — discovery", "description": "The client requests the server's capability list but keeps only locally allowed entries."},
+            {"name": "Check identity and permission — authentication and authorization", "description": "Authentication proves who the caller is. Authorization checks what that caller may do."},
+            {"name": "Check both directions — schema validation", "description": "Validate arguments before the call and validate returned data before the agent uses it."}
+          ],
+          "takeaway": "A protocol provides communication; your application still provides security."
         },
         {
-          "heading": "A2A and typed collaboration",
+          "heading": "Agents should exchange small typed tasks",
           "paragraphs": [
-            "Agent-to-agent protocols can advertise capabilities and exchange tasks, messages, and artifacts. Keep handoffs typed and scoped. Receiving agents should not inherit the sender's authority, context, or credentials. Centralized execution policy remains valuable even when planning is distributed.",
-            "Version task and artifact schemas so different agent implementations can evolve without silent incompatibility."
+            "Agent-to-agent, or A2A, communication lets one agent send a task and receive a result from another. The handoff should contain the exact task, allowed capabilities, budget, input references, and expected result schema.",
+            "The receiving agent must not automatically receive the sender's full conversation, credentials, or permissions. Version the task and result schemas so incompatible changes fail clearly."
           ],
-          "takeaway": "Delegate work, not ambient authority."
+          "takeaway": "Delegate one typed task, not all of the sender's context and authority."
         },
         {
-          "heading": "Multimodal observations",
+          "heading": "Audio and images are observations, not permissions",
           "paragraphs": [
-            "Voice and vision can provide useful printer observations, but transcription and perception are probabilistic. Preserve the original media reference, model version, confidence, and extracted facts. Sensitive media requires explicit privacy and retention policy.",
-            "A visual anomaly may recommend a review or pause proposal, but high-risk execution still passes through the same deterministic policy and approval gateway."
+            "Multimodal means using more than text, such as audio or images. A model can mishear speech or misunderstand a picture, so extracted facts are probabilistic rather than guaranteed.",
+            "Keep a reference to the original file, the model version, confidence, and extracted facts. Apply privacy and deletion rules to sensitive media. An image may support a recommendation, but it never grants permission for a high-risk action."
           ],
-          "takeaway": "Multimodal input expands perception, not permission."
+          "takeaway": "New input types can add evidence, but they do not add authority."
         }
       ],
       "workedExample": {
         "title": "Expose a safe MCP capability",
         "explanation": "Only approved read and bounded write capabilities enter the server allowlist.",
-        "code": "MCP_ALLOWLIST = {\n    \"get_printer_status\": Capability.READ,\n    \"pause_print\": Capability.PROPOSED_WRITE,\n}\n\ndef invoke_mcp_tool(name, arguments, identity):\n    capability = MCP_ALLOWLIST[name]\n    authorization.require(identity, capability)\n    return gateway.propose_or_execute(name, arguments)"
+        "code": "class PrinterToolName(StrEnum):\n    GET_STATUS = \"get_printer_status\"\n    PAUSE_PRINT = \"pause_print\"\n\n\nMCP_ALLOWLIST = {\n    PrinterToolName.GET_STATUS: Capability.READ,\n    PrinterToolName.PAUSE_PRINT: Capability.PROPOSED_WRITE,\n}\n\n\ndef invoke_mcp_tool(name: PrinterToolName, arguments, identity):\n    capability = MCP_ALLOWLIST[name]\n    authorization.require(identity, capability)\n    return gateway.propose_or_execute(name, arguments)"
       },
       "practice": {
         "title": "Design the printer MCP boundary",
@@ -1186,6 +1367,12 @@
         ],
         "runCommand": "pytest tests/test_printer_mcp.py -q",
         "starterCode": "class PrinterMcpAdapter:\n    def discover(self, identity):\n        # TODO: authorized allowlisted capabilities\n        raise NotImplementedError\n\n    def invoke(self, identity, name, arguments):\n        # TODO: validate, authorize, call, normalize\n        raise NotImplementedError\n",
+        "codeGuide": [
+          "The adapter hides the external MCP server behind an application-owned interface, similar to an anti-corruption layer in .NET.",
+          "identity tells authorization code who is requesting access. Authentication must establish it before these methods run.",
+          "discover filters the server list through the local allowlist before the model sees any capability.",
+          "invoke validates input, checks permission, calls the dependency, and validates output in that order."
+        ],
         "checks": [
           {
             "label": "Use an allowlist",
@@ -1240,48 +1427,54 @@
     {
       "module": 11,
       "slug": "multi-agent-orchestration",
-      "title": "Multi-Agent Architecture and Orchestration",
-      "shortTitle": "Multi-agent systems",
+      "title": "Using More Than One Agent",
+      "shortTitle": "Multiple agents",
       "duration": "115 min",
       "level": "Advanced orchestration",
       "projectStage": "13",
-      "summary": "Distribute work across agents without multiplying permissions, hidden state, cost, and failure amplification.",
+      "summary": "Split work between agents only when it provides measured value and does not multiply powerful permissions.",
       "outcomes": [
-        "Compare sequential, coordinator-worker, fan-out, and collaborative patterns.",
-        "Design typed handoffs and scoped context.",
-        "Keep approval and execution centralized.",
-        "Measure coordination overhead and failure amplification."
+        "Compare work done in order, by a coordinator and workers, in parallel, or through free collaboration.",
+        "Send small typed tasks with limited information and permissions.",
+        "Keep approval and powerful execution in one controlled place.",
+        "Measure added time, cost, duplicate work, and new failure paths."
       ],
       "theory": [
         {
-          "heading": "Patterns and costs",
+          "heading": "Add another agent only when separate work helps",
           "paragraphs": [
-            "Sequential flows pass an artifact through ordered roles. Coordinator-worker patterns delegate tasks and aggregate results. Fan-out explores independent work in parallel. Collaborative agents communicate more freely but create complex state, duplication, and deadlock risks. Every extra agent adds model calls, context construction, identity, tracing, and failure paths.",
-            "Use multiple agents only when decomposition, isolation, specialization, or parallelism produces measured value over a single-agent or deterministic baseline."
+            "Imagine preparing a small event. One person can do all tasks in order. For a larger event, one coordinator may give venue research and food research to separate workers. More people help only when the work can be separated clearly.",
+            "A sequential flow passes a result through roles in order. A coordinator-worker pattern gives tasks to workers and combines their results. Fan-out sends independent tasks at the same time. Free collaboration allows more communication but can create duplicate work, waiting cycles, and unclear ownership.",
+            "Every additional agent adds model calls, context, identity, tracing, cost, and failure paths. Compare it with one agent and a fixed workflow before keeping it."
           ],
-          "takeaway": "Role names do not justify architecture; comparative evidence does."
+          "exampleSteps": [
+            {"name": "Split independent work — decomposition", "description": "Give venue research and food research separate typed tasks only because they can be completed independently."},
+            {"name": "Limit each worker — context isolation", "description": "Each worker receives only its task, allowed tools, budget, and expected output."},
+            {"name": "Combine checked results — coordinator", "description": "The coordinator validates both results before using them in the event plan."}
+          ],
+          "takeaway": "Use multiple agents only when measurements show an advantage over a simpler design."
         },
         {
-          "heading": "Typed handoffs and context isolation",
+          "heading": "A handoff must define one bounded responsibility",
           "paragraphs": [
-            "A handoff should contain a task, allowed capabilities, input artifact references, budget, deadline, and expected output schema. Do not copy the entire parent conversation into every worker. Context isolation reduces leakage and distraction while making responsibility clearer.",
-            "Validate every returned artifact before it becomes parent context or triggers another task."
+            "A handoff is the data sent when one agent gives work to another. Include the task, allowed capabilities, input references, budget, deadline, and expected output schema.",
+            "Do not copy the whole parent conversation. Context isolation means giving the worker only the information needed for its responsibility. Validate the returned artifact, which is the worker's saved result, before using it."
           ],
-          "takeaway": "Agents exchange scoped artifacts, not uncontrolled conversation state."
+          "takeaway": "Agents exchange small typed tasks and checked results, not entire conversations."
         },
         {
-          "heading": "Centralized side effects",
+          "heading": "Keep powerful actions in one controlled place",
           "paragraphs": [
-            "Planning can be distributed while privileged execution remains centralized. A safety-review agent may reject or request evidence, but it does not hold printer credentials or bypass the approval service. The execution gateway applies identity, policy, approval, and idempotency uniformly.",
-            "Trace identifiers must cross handoffs so one incident can be reconstructed across all participants."
+            "Several agents may research or review, but they should not each receive credentials for real actions. One execution gateway should apply identity, policy, approval, and duplicate-request protection.",
+            "Carry one trace identifier through every handoff. This lets an engineer reconstruct the complete task across all participating agents."
           ],
-          "takeaway": "More agents must not create more uncontrolled execution paths."
+          "takeaway": "More planners must not create more privileged execution paths."
         }
       ],
       "workedExample": {
         "title": "Create a typed diagnosis handoff",
         "explanation": "The worker receives a bounded task and returns evidence, not a side effect.",
-        "code": "class DiagnosisTask(BaseModel):\n    incident_id: str\n    evidence_refs: list[str]\n    allowed_tools: set[Literal[\"read_status\", \"search_manual\"]]\n    max_steps: int = Field(le=5)\n\nclass DiagnosisArtifact(BaseModel):\n    hypothesis: str\n    evidence_refs: list[str]\n    confidence: float = Field(ge=0, le=1)"
+        "code": "class DiagnosisTool(StrEnum):\n    READ_STATUS = \"read_status\"\n    SEARCH_MANUAL = \"search_manual\"\n\n\nclass DiagnosisTask(BaseModel):\n    incident_id: str\n    evidence_refs: list[str]\n    allowed_tools: set[DiagnosisTool]\n    max_steps: int = Field(gt=0, le=5)\n\n\nclass DiagnosisArtifact(BaseModel):\n    hypothesis: str\n    evidence_refs: list[str]\n    confidence: float = Field(ge=0, le=1)"
       },
       "practice": {
         "title": "Orchestrate a bounded incident team",
@@ -1294,6 +1487,12 @@
         ],
         "runCommand": "pytest tests/test_multi_agent_incident.py -q",
         "starterCode": "class IncidentCoordinator:\n    def run(self, incident):\n        # TODO: monitor artifact -> diagnosis task -> safety review -> central proposal\n        raise NotImplementedError\n",
+        "codeGuide": [
+          "IncidentCoordinator controls the sequence but does not give workers execution credentials.",
+          "Each arrow in the TODO represents a typed handoff: a task goes out and a validated artifact comes back.",
+          "Carry the incident correlation identifier and remaining budget through every handoff.",
+          "The final result is a proposal for the central execution gateway, not a direct printer command."
+        ],
         "checks": [
           {
             "label": "Use typed handoffs",
@@ -1348,43 +1547,50 @@
     {
       "module": 12,
       "slug": "agent-evaluation-reliability",
-      "title": "Agent Evaluation, Reliability, and Feedback",
-      "shortTitle": "Evaluation and reliability",
+      "title": "Testing AI Agent Reliability",
+      "shortTitle": "Testing agent reliability",
       "duration": "135 min",
       "level": "Production quality",
       "projectStage": "7, 14-16",
-      "summary": "Turn agent quality into reproducible datasets, metrics, repeated trials, failure evidence, and release gates.",
+      "summary": "Use saved test cases, repeated runs, separate safety checks, and release rules to measure agent behavior.",
       "outcomes": [
-        "Design datasets, graders, metrics, runs, and fingerprints.",
-        "Measure outcome, trajectory, reliability, safety, cost, latency, and experience.",
-        "Use repeated trials, pass-at-k, and pass-to-the-k correctly.",
-        "Calibrate model judges and detect behavior drift."
+        "Create versioned test cases, scoring rules, measurements, and identifiable test runs.",
+        "Measure final results, action paths, consistency, safety, cost, speed, and usability.",
+        "Repeat tests and distinguish occasional success from success on every required run.",
+        "Compare model-based scoring with people and detect behavior changes between releases."
       ],
       "theory": [
         {
-          "heading": "What to measure",
+          "heading": "Measure success and the way it was achieved",
           "paragraphs": [
-            "Outcome metrics ask whether the task succeeded. Trajectory metrics examine tool choice, arguments, ordering, and recovery. Reliability measures variance across repeated runs. Safety checks policy and approval behavior. Cost and latency measure operability. Experience captures whether outputs and operator interactions are usable.",
-            "A single aggregate score hides dangerous trade-offs. Report safety-critical failures separately and block releases even when average task success improves."
+            "Imagine testing a support assistant. It may produce the correct refund answer but use a forbidden data source. The final answer succeeded, but the path was unsafe.",
+            "An outcome metric measures the final result. A trajectory metric measures the path, such as selected tools, arguments, order, and recovery. Reliability measures whether repeated runs behave consistently. Also measure safety, cost, response time, and whether a person can use the result.",
+            "Do not hide all results inside one average. A serious safety failure must block release even when average task success increases."
           ],
-          "takeaway": "A higher average is irrelevant if a critical safety regression appears."
+          "exampleSteps": [
+            {"name": "Run a defined case — evaluation scenario", "description": "Give the system a saved input with a known expected result and safety rules."},
+            {"name": "Check result and path — graders", "description": "A grader is code or a reviewed model that scores the answer and the actions used to produce it."},
+            {"name": "Apply release rules — evaluation gate", "description": "Block release when a critical safety check fails, even if other scores are high."}
+          ],
+          "takeaway": "A good answer reached through an unsafe path is still a failed evaluation."
         },
         {
-          "heading": "Repeated reliability and abstention",
+          "heading": "Run probabilistic tests more than once",
           "paragraphs": [
-            "Probabilistic systems require repeated trials. Pass-at-k estimates whether at least one of several attempts succeeds; pass-to-the-k measures whether all required repeated attempts succeed. The second is more relevant when a workflow must be dependable every time.",
-            "Separate safe abstention from confidently wrong output. An agent that refuses unsupported action may reduce raw answer rate while improving operational safety."
+            "Because model responses can vary, one passing run is weak evidence. Repeat the same scenario and keep every result.",
+            "Pass-at-k asks whether at least one of k attempts succeeds. Pass-to-the-k asks whether all k required attempts succeed. Use the second when the system must be dependable every time.",
+            "Count a safe refusal separately from a confident wrong answer. Abstention means the system clearly says it lacks enough evidence."
           ],
-          "takeaway": "Measure the kind of failure, not only the number of failures."
+          "takeaway": "Measure consistency and distinguish safe refusal from confident error."
         },
         {
-          "heading": "Graders, drift, and reproducibility",
+          "heading": "Make every evaluation reproducible",
           "paragraphs": [
-            "Use deterministic graders for schemas, states, tool calls, citations, and policy whenever possible. Model judges can assess nuanced quality but must be calibrated against human labels and monitored for disagreement and bias.",
-            "Fingerprint the dataset, harness configuration, prompt, model, tools, skills, policies, and results. Run fault injection and long-horizon checkpoints. Compare releases to detect behavior drift before production.",
-            "Tracing backends do not replace evaluation datasets. Use provider-native traces and OpenTelemetry-compatible instrumentation to correlate generations, retrieval, tools, guardrails, handoffs, approvals, and verification. An external backend such as Phoenix can be compared as an observability adapter, with sensitive model, tool, and audio data redacted."
+            "Use fixed code to grade schemas, states, tool calls, citations, and policy when possible. A model judge can grade qualities that fixed code cannot, but compare it with human labels and measure disagreement.",
+            "Save a fingerprint of the dataset, model, instructions, harness, tools, skills, policies, and results. A fingerprint identifies the exact evaluation configuration. Compare versions to find behavior drift, which means behavior changed over time.",
+            "A trace follows one run through model calls, retrieval, tools, approvals, and verification. Traces help explain failures but do not replace saved evaluation cases. Remove secrets and private data before sending traces to an external system."
           ],
-          "takeaway": "An evaluation result without reproducible configuration is an anecdote."
+          "takeaway": "An evaluation is useful only when its inputs, configuration, and results can be reproduced."
         }
       ],
       "workedExample": {
@@ -1404,6 +1610,12 @@
         ],
         "runCommand": "pytest tests/test_eval_harness.py -q",
         "starterCode": "def run_evaluation(dataset, system, repeats: int):\n    # TODO: fingerprint, repeat, grade, aggregate, release gate\n    raise NotImplementedError\n",
+        "codeGuide": [
+          "dataset is a versioned collection of evaluation cases. system is the exact agent configuration being tested.",
+          "Keep each trial result before calculating totals so failures and variation remain visible.",
+          "A run fingerprint identifies the dataset, model, instructions, tools, policies, and other configuration.",
+          "The release gate must check safety failures directly instead of allowing a high average score to hide them."
+        ],
         "checks": [
           {
             "label": "Repeat trials",
@@ -1464,48 +1676,55 @@
     {
       "module": 13,
       "slug": "safe-self-improvement",
-      "title": "Safe Harness Self-Improvement",
-      "shortTitle": "Safe self-improvement",
+      "title": "Safely Improving the Agent Application",
+      "shortTitle": "Safe improvement",
       "duration": "115 min",
       "level": "Production evolution",
       "projectStage": "14-16",
-      "summary": "Use traces and evaluations to propose better harness behavior without allowing the agent to approve or deploy its own changes.",
+      "summary": "Use repeated failure evidence to propose one limited change without letting the agent approve or release its own work.",
       "outcomes": [
-        "Mine recurring weaknesses from traces, incidents, evals, and fallbacks.",
-        "Define editable and immutable harness surfaces.",
-        "Test candidate changes independently in isolation.",
-        "Use human review, staged rollout, monitoring, rollback, and separation of duties."
+        "Find repeated weaknesses in saved runs, incidents, tests, and safe refusals.",
+        "Define which application parts may change and which must never change automatically.",
+        "Test a proposed change independently in a separated environment.",
+        "Require human review, gradual release, monitoring, rollback, and separate responsibilities."
       ],
       "theory": [
         {
-          "heading": "Improve the harness with evidence",
+          "heading": "Use repeated failures to propose one small improvement",
           "paragraphs": [
-            "Recurring failures may come from instructions, context selection, tool descriptions, schemas, skills, routing, or policy integration. Weakness mining clusters failure evidence and identifies a narrow hypothesis. The goal is not unrestricted self-modification; it is an engineering loop that produces reviewable candidate changes.",
-            "Define editable surfaces explicitly. Safety boundaries, credential policy, release gates, and the improvement process itself should be immutable to the proposing agent."
+            "Imagine that a support assistant repeatedly forgets the return deadline when long messages are shortened. The evidence suggests one narrow problem: the summarizer is dropping dates.",
+            "Weakness mining means grouping related failures and forming a specific explanation that can be tested. The system may propose a candidate change to the summarizer. It may not rewrite any part of itself without limits.",
+            "An editable surface is a part that the improvement process may change. Safety rules, credential policy, release gates, and the improvement process itself must remain outside that permission."
           ],
-          "takeaway": "A self-improvement system proposes changes inside a controlled engineering lifecycle."
+          "exampleSteps": [
+            {"name": "Group repeated evidence — weakness report", "description": "Link the failing cases that all lost an important date during summarization."},
+            {"name": "State one testable idea — hypothesis", "description": "Propose that preserving dates explicitly will fix the failure."},
+            {"name": "Create a limited change — candidate", "description": "Change only the approved summarization rule and send the candidate for independent testing."}
+          ],
+          "takeaway": "Self-improvement means proposing a limited reviewable change, not changing production freely."
         },
         {
-          "heading": "Independent evaluation and authority",
+          "heading": "The proposer must not approve its own change",
           "paragraphs": [
-            "Build the candidate in an isolated branch or sandbox. Run targeted tests for the mined weakness and the full regression suite. The proposer must not grade its own work with exclusive authority, approve the change, or deploy it.",
-            "Separate proposer, evaluator, approver, and deployer roles. Preserve the evidence linking the failure cluster, candidate patch, evaluation, and decision."
+            "Build the candidate in an isolated branch or sandbox, which is a limited environment separated from production. Run tests for the specific weakness and all existing regression tests.",
+            "Separate four responsibilities: proposing, evaluating, approving, and deploying. Save the link from original failures to the code change, test results, human decision, and release."
           ],
-          "takeaway": "No component should create, judge, approve, and deploy the same behavioral change."
+          "takeaway": "No actor should create, judge, approve, and deploy the same change."
         },
         {
-          "heading": "Release without reward hacking",
+          "heading": "Test that the change improves real behavior",
           "paragraphs": [
-            "A candidate can overfit the evaluation set or exploit a weak grader. Use held-out scenarios, human review, adversarial cases, and behavior-drift metrics. Roll out gradually, compare canary and baseline behavior, and maintain a kill switch and tested rollback.",
-            "Improvement cycles should be scheduled or manually triggered, not continuously rewriting production based on every new interaction."
+            "Overfitting means improving only the known test cases without improving the real task. Reward hacking means finding a way to score well without achieving the intended result.",
+            "Use unseen test cases, difficult cases, human review, and behavior-change measurements. Release first to a small canary group, compare it with the current version, and keep a tested rollback and emergency stop.",
+            "Run improvement cycles on a schedule or by explicit request. Do not rewrite production after every interaction."
           ],
-          "takeaway": "The improvement loop needs stronger controls than the agent it improves."
+          "takeaway": "The process that changes an agent needs stricter controls than the agent."
         }
       ],
       "workedExample": {
         "title": "Create a candidate-change record",
         "explanation": "The record connects evidence to a narrow editable surface and forbids direct deployment.",
-        "code": "candidate = HarnessChangeProposal(\n    weakness_ids=[\"eval-42\", \"incident-17\"],\n    editable_surface=\"context.compaction_policy\",\n    immutable_surfaces=[\"execution_policy\", \"release_gate\"],\n    proposed_patch_ref=\"candidate/compaction-v2\",\n    may_self_deploy=False,\n)"
+        "code": "class HarnessSurface(StrEnum):\n    CONTEXT_COMPACTION_POLICY = \"context.compaction_policy\"\n    EXECUTION_POLICY = \"execution_policy\"\n    RELEASE_GATE = \"release_gate\"\n\n\ncandidate = HarnessChangeProposal(\n    weakness_ids=[\"eval-42\", \"incident-17\"],\n    editable_surface=HarnessSurface.CONTEXT_COMPACTION_POLICY,\n    immutable_surfaces={\n        HarnessSurface.EXECUTION_POLICY,\n        HarnessSurface.RELEASE_GATE,\n    },\n    proposed_patch_ref=\"candidate/compaction-v2\",\n    may_self_deploy=False,\n)"
       },
       "practice": {
         "title": "Implement the controlled improvement pipeline",
@@ -1518,6 +1737,12 @@
         ],
         "runCommand": "pytest tests/test_improvement_pipeline.py -q",
         "starterCode": "class ImprovementPipeline:\n    def propose(self, weakness_report):\n        # TODO: constrained candidate only\n        raise NotImplementedError\n\n    def release(self, candidate, evaluation, approval):\n        # TODO: independent gate, canary, rollback\n        raise NotImplementedError\n",
+        "codeGuide": [
+          "propose may create a candidate only for an allowlisted editable surface. It must reject changes to safety or release controls.",
+          "release receives independent evaluation and human approval as separate inputs; the proposer cannot manufacture either one.",
+          "Verify that immutable surfaces are unchanged before starting a canary release.",
+          "Return a typed release result that includes the rollback target and evidence references."
+        ],
         "checks": [
           {
             "label": "Mine weaknesses",
@@ -1577,42 +1802,50 @@
     {
       "module": 14,
       "slug": "sandboxing-security",
-      "title": "Sandboxing, Security, and Blast-Radius Control",
-      "shortTitle": "Sandboxing and security",
+      "title": "Security and Damage Limits",
+      "shortTitle": "Security boundaries",
       "duration": "135 min",
       "level": "Production security",
       "projectStage": "4-5, 12, 15, 17",
-      "summary": "Choose enforceable isolation for files, processes, networks, credentials, devices, and tenants.",
+      "summary": "Enforce limits on files, programs, networks, secrets, devices, resources, and access between customers.",
       "outcomes": [
-        "Distinguish prompt guidance from real containment.",
-        "Compare V8 isolates, WebAssembly, OS sandboxes, Docker, gVisor, and microVMs.",
-        "Control filesystem, process, network, credential, device, and tenant access.",
-        "Design for blast radius, cleanup, forensic evidence, and incident response."
+        "Explain why written AI instructions cannot replace technical access controls.",
+        "Compare several isolation technologies and the threats each one can stop.",
+        "Control file, process, network, secret, device, and customer access.",
+        "Limit maximum damage, clean temporary work, preserve security evidence, and respond to incidents."
       ],
       "theory": [
         {
-          "heading": "Instructions are not isolation",
+          "heading": "A written rule cannot block technical access",
           "paragraphs": [
-            "A prompt that says do not read secrets does not prevent a tool from reading secrets. Coding agents may access files, run commands, install packages, spawn processes, and call networks. Security depends on the operating-system and runtime capabilities actually granted to the process and tools.",
-            "Approval helps confirm intent but does not contain compromise. Fatigued users can approve misleading actions, so least privilege and deny-by-default boundaries remain necessary."
+            "Telling a child “do not open this drawer” is not the same as locking the drawer. In the same way, a prompt that says “do not read secrets” does not remove file access.",
+            "Isolation means technical controls that limit files, programs, networks, credentials, and devices. Least privilege means granting only the smallest access needed for the task. Deny by default means access remains blocked until it is explicitly allowed.",
+            "Human approval confirms intent but cannot contain compromised code. Keep enforceable limits even when a person approves an action."
           ],
-          "takeaway": "Containment must survive a fully hostile prompt."
+          "exampleSteps": [
+            {"name": "Grant only required files — filesystem boundary", "description": "Give the task read access to the project and write access only to a temporary folder."},
+            {"name": "Block unneeded connections — network boundary", "description": "Deny public network access unless one named destination is required."},
+            {"name": "Limit resources — process boundary", "description": "Set maximum running time, memory, and number of child processes."}
+          ],
+          "takeaway": "Security comes from enforced access limits, not from polite instructions."
         },
         {
-          "heading": "Isolation layers and trade-offs",
+          "heading": "Different isolation layers stop different threats",
           "paragraphs": [
-            "V8-style isolates and WebAssembly provide fast language-level boundaries but limited compatibility. OS sandboxes restrict processes and syscalls. Docker packages environments but shares the host kernel. gVisor adds a user-space kernel boundary. Firecracker-style microVMs offer stronger isolation with additional startup and operational cost.",
-            "Choose based on threat, workload compatibility, latency, density, and data sensitivity. No single layer solves credential scope, egress, tenant separation, and supply-chain risk by itself."
+            "A language isolate limits code inside one runtime. WebAssembly is a portable instruction format with a limited host interface. An operating-system sandbox restricts what a process may ask the operating system to do.",
+            "A Docker container packages a process and its dependencies but shares the host kernel. gVisor adds another boundary between the process and host kernel. A microVM runs a small virtual machine and gives stronger separation at higher startup and operating cost.",
+            "Choose layers from the actual threat, required software, speed, number of users, and data sensitivity. One layer does not solve every security problem."
           ],
-          "takeaway": "Sandbox choice is a risk decision, not a product popularity contest."
+          "takeaway": "Choose isolation from the threat and required access, not product popularity."
         },
         {
-          "heading": "Blast radius and identity",
+          "heading": "Decide where damage must stop",
           "paragraphs": [
-            "Scope filesystem mounts, network destinations, device access, CPU, memory, process count, and lifetime. Broker short-lived credentials to a specific tool call instead of placing broad secrets in the environment. Destroy ephemeral workspaces after use and preserve only approved artifacts and forensic logs.",
-            "Threat models should include prompt injection, indirect injection, confused deputy behavior, malicious dependencies, data exfiltration, and cross-tenant access."
+            "Blast radius means the maximum damage one failure can cause. Limit mounted files, network destinations, devices, CPU, memory, child processes, and running time.",
+            "Give one tool a short-lived credential for one request instead of placing a broad secret in the whole environment. Delete temporary workspaces after use and keep only approved results and security evidence.",
+            "A threat model is a written list of possible attackers, failures, targets, and defenses. Include malicious instructions, unsafe dependencies, stolen data, and access between customers."
           ],
-          "takeaway": "Assume a failure will happen and decide exactly where the damage stops."
+          "takeaway": "Assume a failure can happen and enforce where its damage stops."
         }
       ],
       "workedExample": {
@@ -1631,6 +1864,12 @@
         ],
         "runCommand": "pytest tests/security/test_sandbox_policy.py -q",
         "starterCode": "def lesson_sandbox_profile():\n    # TODO: filesystem, network, credentials, quotas, cleanup\n    raise NotImplementedError\n",
+        "codeGuide": [
+          "Return one typed SandboxProfile so tests can inspect every granted capability.",
+          "Use explicit read-only and writable paths. Do not use broad home-directory or filesystem-root access.",
+          "An empty network allowlist and empty credential list implement deny-by-default behavior.",
+          "Resource and lifetime limits must be values enforced by the sandbox, not comments in a prompt."
+        ],
         "checks": [
           {
             "label": "Restrict filesystem",
@@ -1687,42 +1926,50 @@
     {
       "module": 15,
       "slug": "production-operations",
-      "title": "Deployment, Observability, Resilience, and Cost",
+      "title": "Running Agent Systems in Production",
       "shortTitle": "Production operations",
       "duration": "150 min",
       "level": "Production operations",
       "projectStage": "6, 14-17",
-      "summary": "Operate long-running agent work with durable state, correlated telemetry, failure recovery, controlled releases, and budgets.",
+      "summary": "Save long-running work, follow each request, recover from dependency failures, release safely, and control cost.",
       "outcomes": [
-        "Choose synchronous, asynchronous, queued, and event-driven execution patterns.",
-        "Add checkpoints, idempotency, resumability, and reconciliation.",
-        "Trace model, context, retrieval, tools, approvals, handoffs, and verification.",
-        "Use SLOs, resilience patterns, release controls, and cost budgets."
+        "Choose whether work completes now, continues later, waits in a queue, or reacts to an event.",
+        "Save progress, prevent duplicate actions, resume safely, and compare saved state with reality.",
+        "Follow model calls, information loading, tools, approvals, handoffs, and result checks.",
+        "Define reliability targets, failure handling, release controls, and operating budgets."
       ],
       "theory": [
         {
-          "heading": "Long-running work is distributed work",
+          "heading": "Save long work before waiting",
           "paragraphs": [
-            "Agent tasks can outlive an HTTP request and cross model, retrieval, tool, human approval, and worker boundaries. Persist state and checkpoints before waiting on external actors. Use queues and workers for resumable work, and reconcile external state after interruption.",
-            "Idempotency keys prevent duplicate writes, while dead-letter handling preserves work that cannot progress automatically."
+            "Imagine an online order that waits several hours for payment confirmation. The web request cannot stay open for hours. Save the order state, then let another worker continue when confirmation arrives.",
+            "Agent tasks can also outlive one web request. A checkpoint is saved progress from which work can safely continue. A queue stores work until a worker is ready. After interruption, reconcile saved state with the external system before continuing.",
+            "Use an idempotency key to prevent duplicate changes. A dead-letter queue stores work that repeatedly fails so a person can inspect it instead of losing it."
           ],
-          "takeaway": "Design every long task as restartable from a verified checkpoint."
+          "exampleSteps": [
+            {"name": "Save before waiting — checkpoint", "description": "Store the task state and exact pending action before asking a person for approval."},
+            {"name": "Resume later — queue and worker", "description": "A worker loads the saved task after approval or restart instead of relying on old memory."},
+            {"name": "Compare with reality — reconciliation", "description": "Check the external system before repeating or continuing an uncertain action."}
+          ],
+          "takeaway": "Every long task must restart safely from saved and verified progress."
         },
         {
-          "heading": "Observability across the harness",
+          "heading": "Use logs, metrics, and traces for different questions",
           "paragraphs": [
-            "Correlated traces should cover context construction, retrieval, model calls, tool proposals, approval waits, execution, and verification. Logs explain discrete events; metrics reveal trends; traces connect causality. OpenTelemetry provides a portable model for spans and propagation.",
-            "Do not log secrets, private prompts, or full sensitive documents by default. Observability has its own data-governance policy."
+            "A log records one event. A metric is a number measured over time, such as failure count. A trace connects the steps of one request from start to finish.",
+            "Carry one correlation identifier through context building, search, model calls, approvals, execution, and verification. OpenTelemetry is a standard for representing and sending this trace information.",
+            "Do not record secrets or full private documents by default. Observability data needs its own access, retention, and deletion rules."
           ],
-          "takeaway": "Capture enough evidence to debug behavior without creating a new data leak."
+          "takeaway": "Collect enough evidence to explain failures without creating a new privacy risk."
         },
         {
-          "heading": "Resilience, releases, and economics",
+          "heading": "Plan for unavailable services and limited budgets",
           "paragraphs": [
-            "Use timeouts, bounded retries, backoff, circuit breakers, bulkheads, quotas, and backpressure. Define degraded behavior when models or retrieval are unavailable. Release prompts, models, tools, skills, policies, and schemas with version compatibility, canaries, monitoring, and rollback.",
-            "Budgets include tokens, money, latency, concurrency, and operator time. Model routing, caching, batching, and smaller models can reduce cost, but only while evaluation gates remain satisfied."
+            "Resilience means continuing safely when a dependency is slow or unavailable. Use timeouts, limited retries, increasing delays, and circuit breakers. A circuit breaker temporarily stops calls to a failing service. Backpressure slows new work when the system is full.",
+            "Define a reduced but safe behavior for missing model or search services. Release model settings, instructions, tools, skills, policies, and schemas with versions, a small canary release, monitoring, and rollback.",
+            "Limit model usage, money, response time, simultaneous work, and operator time. Reduce cost only when evaluation gates still pass."
           ],
-          "takeaway": "Cost is a reliability constraint because exhausted budgets stop service."
+          "takeaway": "A system is reliable only when it fails safely and stays within its operating budget."
         }
       ],
       "workedExample": {
@@ -1741,6 +1988,12 @@
         ],
         "runCommand": "pytest tests/test_resumable_incident.py -q",
         "starterCode": "class IncidentWorker:\n    def resume(self, incident_id):\n        # TODO: load checkpoint, reconcile, trace, budget, and continue safely\n        raise NotImplementedError\n",
+        "codeGuide": [
+          "incident_id is a stable identifier used to load saved progress; it must not depend on one running worker.",
+          "Reconcile the checkpoint with the external system before continuing an uncertain action.",
+          "Use one correlation identifier in the trace so the original request and resumed work remain connected.",
+          "Reuse the saved idempotency key when continuing the same command."
+        ],
         "checks": [
           {
             "label": "Load a checkpoint",
@@ -1800,42 +2053,48 @@
     {
       "module": 16,
       "slug": "cognitive-human-governance",
-      "title": "Cognitive Safeguards, Human Operations, and Governance",
-      "shortTitle": "Human operations",
+      "title": "Uncertainty, Human Control, and Governance",
+      "shortTitle": "Human control",
       "duration": "110 min",
       "level": "Production governance",
       "projectStage": "5, 14-17",
-      "summary": "Make uncertainty reduce authority, support operators with evidence, and govern decisions through policy and incident practice.",
+      "summary": "Make uncertain systems safer by reducing authority, showing people clear evidence, and enforcing operational rules.",
       "outcomes": [
-        "Separate perception, planning, execution, evaluation, attention, knowledge, and memory responsibilities.",
-        "Use confidence and known-unknown classification to gate action.",
-        "Design human-in, human-on, and human-out-of-the-loop boundaries.",
-        "Implement emergency stop, separation of duties, audit, and incident review."
+        "Separate observing, planning, acting, checking, selecting information, knowledge, and memory.",
+        "Use measured confidence and missing-information categories to route actions safely.",
+        "Choose where a person approves, monitors, or is not required for low-risk work.",
+        "Add emergency stop, separate responsibilities, saved records, and incident review."
       ],
       "theory": [
         {
-          "heading": "Uncertainty must reduce authority",
+          "heading": "Less evidence must never create more permission",
           "paragraphs": [
-            "Confidence is not a feeling expressed by the model; it is an operational signal calibrated against outcomes and evidence sufficiency. Known-unknown classification distinguishes missing data, conflicting evidence, unsupported capability, and low-confidence interpretation. Each state maps to a deterministic response.",
-            "Low confidence can request another approved read or escalate to a human. It must never unlock broader tools or bypass approval."
+            "Imagine a fraud-review assistant that cannot tell whether a card payment belongs to the customer. The safe response is to request more evidence or ask a person, not to gain permission to block every account.",
+            "Confidence is a measured signal compared with past results, not a feeling written by the model. A known unknown is a specific missing fact. A conflict means two trusted facts disagree.",
+            "Map each uncertainty state to fixed behavior: another approved read, a safe refusal, or human review. Never unlock broader tools or skip approval."
           ],
-          "takeaway": "Permission is monotonic downward as uncertainty rises."
+          "exampleSteps": [
+            {"name": "Classify the evidence — knowledge state", "description": "Mark the case as sufficient, missing information, conflicting information, or unsupported."},
+            {"name": "Apply fixed thresholds — confidence gate", "description": "A gate is code that routes low-confidence cases away from automatic action."},
+            {"name": "Choose a safer route — escalation", "description": "Request approved evidence or human review while keeping permissions unchanged or smaller."}
+          ],
+          "takeaway": "As uncertainty increases, permission stays the same or becomes smaller."
         },
         {
-          "heading": "Human control is designed",
+          "heading": "Choose exactly where a person controls the process",
           "paragraphs": [
-            "Human-in-the-loop requires approval before action. Human-on-the-loop allows bounded automation with monitoring and override. Human-out-of-the-loop is reserved for low-risk, fully bounded behavior. Interfaces should show the proposed action, evidence, uncertainty, risk, expected effect, and alternatives.",
-            "Measure intervention load and approval quality. Too many low-value prompts create automation bias and rubber-stamping."
+            "Human-in-the-loop means a person must approve before an action. Human-on-the-loop means limited automation runs while a person monitors and can stop it. Human-out-of-the-loop means no person reviews each action and is suitable only for low-risk, tightly limited behavior.",
+            "An approval screen must show the proposed action, evidence, uncertainty, risk, expected result, and alternatives. Measure how often people are interrupted and whether their decisions are careful. Too many requests encourage automatic approval without review."
           ],
-          "takeaway": "A human button is not a safety system unless the decision is understandable and actionable."
+          "takeaway": "Human control works only when the person receives clear evidence and a meaningful choice."
         },
         {
-          "heading": "Governance and incidents",
+          "heading": "Turn governance rules into executable behavior",
           "paragraphs": [
-            "Policy-as-code defines permissions, retention, model use, and release gates. Separation of duties prevents one actor from proposing, approving, and deploying sensitive changes. Audit records support accountability and forensic reconstruction.",
-            "Prepare emergency stop, incident classification, containment, recovery, communication, and post-incident review before real hardware. Corrective actions should become tests, evaluations, or policy changes."
+            "Policy as code means writing permissions, data-retention rules, model-use rules, and release gates as testable software. Separation of duties means different people or systems propose, approve, and deploy sensitive changes.",
+            "Prepare an emergency stop and an incident plan before using real hardware. The plan covers severity, containment, recovery, communication, and review. Turn lessons from an incident into tests, evaluations, or policy changes."
           ],
-          "takeaway": "Governance becomes real when it changes executable behavior and incident response."
+          "takeaway": "Governance is real when rules are enforced by code and practiced during incidents."
         }
       ],
       "workedExample": {
@@ -1855,6 +2114,12 @@
         ],
         "runCommand": "pytest tests/test_cognitive_safeguards.py -q",
         "starterCode": "def route_recommendation(recommendation, policy):\n    # TODO: known/unknown, confidence, conflict, risk, emergency stop\n    raise NotImplementedError\n",
+        "codeGuide": [
+          "Evaluate the emergency-stop state first because it overrides normal routing.",
+          "Represent knowledge state and terminal routes with enums or typed result classes, not magic strings.",
+          "Check evidence conflict and confidence before evaluating an action for execution.",
+          "High confidence never removes approval required by risk policy."
+        ],
         "checks": [
           {
             "label": "Classify unknowns",
@@ -1891,7 +2156,7 @@
           "Evaluate emergency-stop state before normal routing.",
           "High confidence does not remove risk-based approval."
         ],
-        "solution": "def route_recommendation(recommendation, policy):\n    if policy.emergency_stop_active:\n        return Blocked(reason=\"emergency stop\")\n    if recommendation.knowledge_state in {\"unknown\", \"conflict\"}:\n        return HumanEscalation(evidence=recommendation.evidence)\n    if recommendation.confidence < policy.minimum_confidence:\n        return Abstention(reason=\"low confidence\")\n    decision = policy.evaluate(recommendation.action)\n    return PendingApproval(decision) if decision.requires_approval else ProposedAction(decision)\n"
+        "solution": "class KnowledgeState(StrEnum):\n    SUFFICIENT = \"sufficient\"\n    UNKNOWN = \"unknown\"\n    CONFLICT = \"conflict\"\n\n\ndef route_recommendation(recommendation, policy):\n    if policy.emergency_stop_active:\n        return Blocked(reason=BlockReason.EMERGENCY_STOP)\n    if recommendation.knowledge_state in {\n        KnowledgeState.UNKNOWN,\n        KnowledgeState.CONFLICT,\n    }:\n        return HumanEscalation(evidence=recommendation.evidence)\n    if recommendation.confidence < policy.minimum_confidence:\n        return Abstention(reason=AbstentionReason.LOW_CONFIDENCE)\n    decision = policy.evaluate(recommendation.action)\n    if decision.requires_approval:\n        return PendingApproval(decision=decision)\n    return ProposedAction(decision=decision)\n"
       },
       "quiz": {
         "question": "What should low confidence do to an agent's permissions?",
@@ -1915,42 +2180,49 @@
     {
       "module": 17,
       "slug": "production-capstone-transfer",
-      "title": "Production Capstone and Architecture Transfer",
-      "shortTitle": "Capstone and transfer",
+      "title": "Final Production Review and Reuse",
+      "shortTitle": "Final production review",
       "duration": "Multi-week",
       "level": "Capstone",
       "projectStage": "18",
-      "summary": "Integrate the complete platform, pass a production readiness review, and prove the architecture transfers to another domain.",
+      "summary": "Test the complete system, collect release evidence, and prove reusable parts with one second business example.",
       "outcomes": [
-        "Integrate deterministic, probabilistic, security, evaluation, and operational components.",
-        "Run a production readiness review with evidence.",
-        "Create runbooks, threat models, ADRs, and service ownership.",
-        "Transfer reusable architecture without copying printer-specific assumptions."
+        "Connect fixed rules, AI recommendations, security, evaluations, and production operations.",
+        "Decide release readiness from testable evidence.",
+        "Create operating instructions, security analysis, decision records, and clear ownership.",
+        "Reuse proven components in a second domain without copying printer-specific rules."
       ],
       "theory": [
         {
-          "heading": "Integration changes the risk",
+          "heading": "Parts that work alone can still fail together",
           "paragraphs": [
-            "Components that pass isolated tests can fail at their seams. Context versions may not match tool schemas, approval can expire during retries, and memory may outlive policy changes. The capstone evaluates complete user journeys and failure journeys across deterministic logic, models, tools, data, humans, and infrastructure.",
-            "Use architecture fitness functions: automated checks for dependency direction, permission boundaries, trace propagation, evaluation gates, and recovery behavior."
+            "A car's engine, brakes, and steering can each pass a separate test while the complete car still has a dangerous connection problem. Software components can fail in the same way at the places where they connect.",
+            "A context version may not match a tool schema. Approval may expire during a retry. Saved memory may contain an older policy. The capstone tests complete success and failure journeys across code, models, tools, data, people, and infrastructure.",
+            "An architecture fitness function is an automated check for an architecture rule. Examples include dependency direction, permission boundaries, trace identifiers, evaluation gates, and recovery behavior."
           ],
-          "takeaway": "Production readiness is an end-to-end property."
+          "exampleSteps": [
+            {"name": "Test one complete journey — end-to-end test", "description": "Start with a user request and continue through model, policy, approval, action, and verification."},
+            {"name": "Break one dependency — failure journey", "description": "Repeat the journey while a required service is unavailable and verify the safe result."},
+            {"name": "Check architecture rules — fitness functions", "description": "Automatically prove that privileged actions still cross the required permission boundary."}
+          ],
+          "takeaway": "Production readiness belongs to the complete system, not to isolated components."
         },
         {
-          "heading": "Readiness and ownership",
+          "heading": "A production service needs an owner and recovery evidence",
           "paragraphs": [
-            "A readiness review asks who owns the service, which SLOs apply, how incidents are detected, which actions require approval, how releases roll back, how data is retained, and what happens when every dependency fails. Evidence should include tests, eval reports, traces, threat models, cost estimates, and drills.",
-            "Document a framework-exit strategy so prompts, tools, policies, memory, and evaluations remain portable when providers or SDKs change."
+            "A readiness review is a structured decision about whether a service may be released. It asks who owns it, how reliability is measured, how incidents are detected, which actions need approval, how data is kept, and how a release is reversed.",
+            "Support every answer with tests, evaluation reports, traces, threat models, cost estimates, and practiced recovery steps. Also document how typed contracts, policies, memory, and evaluations can move if the model provider or SDK changes."
           ],
-          "takeaway": "A system without an owner and a recovery plan is still a prototype."
+          "takeaway": "Without an owner, evidence, and tested recovery, the system remains a prototype."
         },
         {
-          "heading": "Transfer proves the abstraction",
+          "heading": "A second domain proves what is really reusable",
           "paragraphs": [
-            "A second operational domain reveals whether the architecture contains real reusable seams or printer-specific assumptions disguised as abstractions. Reuse policy engines, approval, audit, evaluation, tracing, and harness contracts where they fit. Replace the domain state machine, tools, risks, and authoritative knowledge.",
-            "Compare what transferred unchanged, what needed adaptation, and what should never have been generalized."
+            "A reusable name does not prove reusable design. Apply one thin end-to-end path to a second domain, such as online-order operations.",
+            "Reuse policy, approval, audit, evaluation, tracing, and harness contracts only where they truly fit. Replace the printer states, commands, risks, and source knowledge with the second domain's concepts.",
+            "Record what moved unchanged, what needed adaptation, and what should have remained specific. This evidence reveals the real module boundaries."
           ],
-          "takeaway": "Reusable architecture is demonstrated by a second domain, not predicted by a class name."
+          "takeaway": "Prove reuse with a working second example, not with generic class names."
         }
       ],
       "workedExample": {
@@ -1968,7 +2240,30 @@
           "Map reusable and domain-specific components for a second operational domain."
         ],
         "runCommand": "pytest -q && python -m tools.run_readiness_review",
+        "commandGuide": {
+          "terminal": "On Windows 10 or 11, open PowerShell. On Ubuntu, open Bash in the Terminal application. First activate the project's virtual environment.",
+          "windowsCommand": "pytest -q; if ($LASTEXITCODE -eq 0) { python -m tools.run_readiness_review }",
+          "ubuntuCommand": "pytest -q && python -m tools.run_readiness_review",
+          "why": "Run the complete automated test suite first. Run the production-readiness review only when every test passes.",
+          "program": "pytest runs Python tests. python starts the Python interpreter. The readiness-review module performs the project's final evidence checks.",
+          "parts": [
+            "pytest -q runs all tests and shows short output.",
+            "In PowerShell, the semicolon ends the first command. $LASTEXITCODE contains its result. -eq 0 checks that pytest succeeded before PowerShell runs the code inside braces.",
+            "In Ubuntu Bash, && runs the second command only when the first command succeeds.",
+            "python -m asks Python to run an installed module by name.",
+            "tools.run_readiness_review is the module that performs the readiness review."
+          ],
+          "effect": "The commands read the repository, run tests, and produce readiness-review output. They may create test cache and review-result files inside the repository. They do not permanently change Windows or Ubuntu.",
+          "successEvidence": "All tests report passed, and the readiness review reports that every critical gate passed. Any failed critical gate means the release is not ready.",
+          "failureRecovery": "If pytest is not found, confirm that the virtual environment is active. If tests fail, fix the first failure before running the readiness review. If the module is not found, confirm that you are in the repository root and that the project dependencies are installed."
+        },
         "starterCode": "class ProductionReadinessReview:\n    def evaluate(self, evidence_pack):\n        # TODO: critical gates, ownership, runbooks, recovery, transfer plan\n        raise NotImplementedError\n",
+        "codeGuide": [
+          "evidence_pack is a typed collection of test, evaluation, security, recovery, ownership, and release evidence.",
+          "Represent critical evidence categories with an enum instead of a list of magic strings.",
+          "Return a typed Ready or Blocked result containing exact failed categories.",
+          "A warning may carry an owner and deadline, but any failed critical gate must block release."
+        ],
         "checks": [
           {
             "label": "Enforce critical gates",
@@ -2000,7 +2295,7 @@
           "A warning can be accepted only with an owner and deadline; critical failures block release.",
           "The second domain needs one thin end-to-end slice, not a second full product."
         ],
-        "solution": "class ProductionReadinessReview:\n    def evaluate(self, evidence_pack):\n        critical = [\"tests\", \"evals\", \"safety\", \"security\", \"recovery\", \"rollback\"]\n        failures = [name for name in critical if not evidence_pack.passed(name)]\n        if failures:\n            return Blocked(failures=failures)\n        if not evidence_pack.owner or not evidence_pack.runbook or not evidence_pack.transfer_plan:\n            return Blocked(failures=[\"ownership or operational evidence missing\"] )\n        return Ready(version=evidence_pack.release_version)\n"
+        "solution": "class EvidenceCategory(StrEnum):\n    TESTS = \"tests\"\n    EVALUATIONS = \"evaluations\"\n    SAFETY = \"safety\"\n    SECURITY = \"security\"\n    RECOVERY = \"recovery\"\n    ROLLBACK = \"rollback\"\n\n\nCRITICAL_EVIDENCE = frozenset(EvidenceCategory)\n\n\nclass ProductionReadinessReview:\n    def evaluate(self, evidence_pack):\n        failures = [\n            category\n            for category in CRITICAL_EVIDENCE\n            if not evidence_pack.passed(category)\n        ]\n        if failures:\n            return Blocked(failures=failures)\n        if not evidence_pack.has_operational_ownership():\n            return Blocked(failures=[ReadinessFailure.MISSING_OWNERSHIP])\n        return Ready(version=evidence_pack.release_version)\n"
       },
       "quiz": {
         "question": "What best proves that an architecture is transferable?",

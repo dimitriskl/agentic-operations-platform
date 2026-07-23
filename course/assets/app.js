@@ -124,10 +124,27 @@
   }
 
   function renderCommandGuide(practice) {
-    const guide = practice.commandGuide;
-    if (!guide) {
-      return `<div class="callout"><strong>Run locally:</strong> <code>${escapeHtml(practice.runCommand)}</code></div>`;
-    }
+    const testPath = practice.runCommand
+      .split(" ")
+      .find((part) => part.startsWith("tests/"));
+    const defaultParts = [
+      "pytest starts the Python program that finds and runs automated tests.",
+      testPath
+        ? `${testPath} selects the test file for this lab.`
+        : "With no test-file path, pytest searches the whole project for tests.",
+      "-q asks pytest to show shorter output. The letter q means quiet.",
+    ];
+    const guide = practice.commandGuide ?? {
+      terminal: "On Windows 10 or 11, open PowerShell. On Ubuntu, open Bash in the Terminal application. First activate the project's virtual environment. A virtual environment is an isolated folder containing this project's Python tools and packages.",
+      windowsCommand: practice.runCommand,
+      ubuntuCommand: practice.runCommand,
+      why: `Run the automated tests for “${practice.title}” and check that the lab behaves as required.`,
+      program: "pytest is a Python program that finds and runs automated tests. It is installed in the project's virtual environment.",
+      parts: defaultParts,
+      effect: "The command reads project files and runs tests. It does not permanently change Windows or Ubuntu. It may create temporary cache files inside the project to speed up later test runs.",
+      successEvidence: "The final line reports that all selected tests passed. The exact number depends on how many tests the lab contains.",
+      failureRecovery: "If the terminal says that pytest was not found, confirm that the virtual environment is active. Its name, usually (.venv), should appear at the start of the prompt. If a test fails, read the first failure and note its file, line number, expected value, and actual value.",
+    };
 
     return `
       <section class="command-guide" aria-labelledby="command-guide-title">
